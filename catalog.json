@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "launcher": {
+    "version": "0.1.0",
+    "url": "https://github.com/Enqrypted/crystal-suite/releases/latest"
+  },
+  "apps": [
+    {
+      "id": "photon",
+      "name": "Photon",
+      "version": "0.1.0",
+      "description": "Photo editing, retouching & compositing",
+      "url": "https://github.com/Enqrypted/crystal-suite/releases/download/photon-v0.1.0/photon-0.1.0.zip",
+      "size": 274790,
+      "sha256": "a95fd06bd747af98a64bff67d83ca3b6df130e12115d1dabadb80dbe58fb16f3",
+      "minLauncher": "0.1.0",
+      "notes": "First release: layers & groups, selections (Magic Wand, Quick Selection, lassos), Free Transform, 27 blend modes, adjustment layers, filters, layer styles, PSD open/save and Export Layer As."
+    }
+  ]
+}

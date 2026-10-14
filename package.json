@@ -1,0 +1,97 @@
+{
+  "name": "crystal-suite",
+  "productName": "Crystal Suite",
+  "version": "0.1.0",
+  "description": "Crystal Suite - a free, open-source, local creative suite. The launcher downloads and updates its apps; Photon is its Photoshop-style image editor.",
+  "license": "MIT",
+  "private": true,
+  "main": "electron/main.cjs",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Enqrypted/crystal-suite.git"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "app": "electron .",
+    "photon": "vite build && electron . --photon",
+    "start": "electron .",
+    "pack:apps": "npm run build && node scripts/pack-apps.cjs",
+    "dist": "electron-builder --win",
+    "dist:dir": "electron-builder --win --dir",
+    "release:all": "npm run pack:apps && npm run dist",
+    "postinstall": "node scripts/patch-nsis-template.cjs",
+    "predist": "node scripts/patch-nsis-template.cjs"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10",
+    "vite-plugin-singlefile": "^2.0.3",
+    "ag-psd": "^20.2.1"
+  },
+  "author": "Crystal Suite contributors",
+  "build": {
+    "appId": "app.crystalsuite.suite",
+    "productName": "Crystal Suite",
+    "copyright": "Copyright (c) 2026 Crystal Suite contributors. MIT License.",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "electron/**/*",
+      "package.json"
+    ],
+    "electronDist": "node_modules/electron/dist",
+    "electronVersion": "33.2.0",
+    "asar": true,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/suite.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Crystal Suite",
+      "include": "build/installer.nsh",
+      "installerIcon": "build/suite.ico",
+      "uninstallerIcon": "build/suite.ico",
+      "artifactName": "CrystalSuite-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "CrystalSuite-Portable-${version}.${ext}",
+      "splashImage": "build/portable-splash.bmp"
+    },
+    "fileAssociations": [
+      {
+        "ext": "phtn",
+        "name": "Photon Project",
+        "description": "Photon Project",
+        "icon": "build/photon.ico",
+        "role": "Editor"
+      }
+    ],
+    "electronLanguages": [
+      "en-US"
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "id": "photon",
+  "name": "Photon",
+  "version": "0.1.0",
+  "description": "Photo editing, retouching & compositing",
+  "entry": "index.html",
+  "minLauncher": "0.1.0",
+  "notes": "First release: layers & groups, selections (Magic Wand, Quick Selection, lassos), Free Transform, 27 blend modes, adjustment layers, filters, layer styles, PSD open/save and Export Layer As.",
+  "window": { "width": 1600, "height": 960, "minWidth": 1000, "minHeight": 640, "background": "#1f1f1f", "maximize": true },
+  "fileTypes": ["psd", "psb", "phtn", "png", "jpg", "jpeg", "gif", "webp", "bmp", "svg", "ico", "avif"]
+}

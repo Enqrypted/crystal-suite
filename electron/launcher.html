@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data:" />
+<title>Crystal Suite</title>
+<style>
+  :root {
+    --bg: #1b1b1f; --side: #141417; --card: #26262b; --card-2: #2e2e34; --line: #34343c;
+    --text: #e6e6ea; --dim: #9a9aa4; --faint: #6c6c76; --accent: #2680eb; --accent-2: #4b9cf5;
+    --ok: #3ccf8e; --warn: #f0b429; --err: #ff6b6b;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 13px/1.4 "Segoe UI", system-ui, sans-serif; user-select: none; }
+  .wrap { display: grid; grid-template-columns: 220px 1fr; height: 100%; }
+  aside { background: var(--side); padding: 22px 14px 16px; display: flex; flex-direction: column; gap: 2px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 600; margin: 0 6px 22px; }
+  .gem { width: 30px; height: 30px; border-radius: 8px; background: conic-gradient(from 210deg, #6ee7ff, #7c5cff, #ff6ad5, #ffd36e, #6ee7ff); position: relative; flex-shrink: 0; }
+  .gem::after { content: ''; position: absolute; inset: 7px; border-radius: 4px; background: var(--side); transform: rotate(45deg); }
+  .nav { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; color: var(--dim); cursor: pointer; }
+  .nav:hover { color: var(--text); background: #1d1d22; }
+  .nav.active { background: var(--card); color: var(--text); }
+  .nav svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .count { margin-left: auto; background: var(--accent); color: #fff; border-radius: 9px; font-size: 11px; padding: 0 7px; line-height: 17px; }
+  .spacer { flex: 1; }
+  .foot { color: var(--faint); font-size: 11px; padding: 0 10px; line-height: 1.5; }
+  main { padding: 26px 36px 40px; overflow: auto; }
+  header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+  h1 { font-weight: 300; font-size: 26px; margin: 0; flex: 1; }
+  .status { color: var(--dim); font-size: 12px; display: flex; align-items: center; gap: 6px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
+  .dot.offline { background: var(--warn); }
+  .spin { width: 12px; height: 12px; border: 2px solid #3a3a44; border-top-color: var(--accent-2); border-radius: 50%; animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .banner { display: flex; align-items: center; gap: 12px; background: #1f2b3d; border: 1px solid #2c4568; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; }
+  .banner.warn { background: #2e2817; border-color: #5a4a1d; }
+  .banner .msg { flex: 1; }
+  .section { margin: 26px 0 10px; color: var(--dim); font-size: 12px; text-transform: uppercase; letter-spacing: .6px; }
+  .section:first-of-type { margin-top: 6px; }
+  .rows { display: flex; flex-direction: column; gap: 10px; }
+  .row { background: var(--card); border-radius: 10px; padding: 14px 16px; display: flex; gap: 14px; align-items: center; border: 1px solid transparent; }
+  .row.installed:hover { border-color: #3a3a44; background: var(--card-2); }
+  .badge { width: 46px; height: 46px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px; flex-shrink: 0; border: 2px solid currentColor; }
+  .info { flex: 1; min-width: 0; }
+  .name { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .ver { font-size: 11px; font-weight: 400; color: var(--dim); background: #1d1d22; border-radius: 4px; padding: 1px 6px; }
+  .ver.new { color: #fff; background: var(--accent); }
+  .desc { color: var(--dim); font-size: 12px; }
+  .line { font-size: 12px; color: var(--faint); margin-top: 3px; }
+  .line.err { color: var(--err); }
+  .line a { color: var(--accent-2); cursor: pointer; margin-left: 6px; }
+  .bar { height: 5px; background: #1d1d22; border-radius: 3px; overflow: hidden; margin-top: 7px; max-width: 380px; }
+  .bar i { display: block; height: 100%; background: var(--accent); border-radius: 3px; transition: width .15s; }
+  .bar.busy i { width: 35% !important; animation: slide 1s ease-in-out infinite alternate; }
+  @keyframes slide { from { margin-left: 0; } to { margin-left: 65%; } }
+  .actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+  button { font: inherit; border: none; border-radius: 15px; padding: 6px 16px; background: var(--accent); color: #fff; cursor: pointer; white-space: nowrap; }
+  button:hover { background: var(--accent-2); }
+  button.ghost { background: transparent; color: var(--text); border: 1px solid #4a4a54; }
+  button.ghost:hover { background: #33333a; }
+  button.icon { padding: 6px 9px; line-height: 1; }
+  button[disabled] { background: transparent; color: var(--faint); border: 1px solid #3a3a44; cursor: default; }
+  .soon { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+  .soon .row { padding: 12px 14px; opacity: .8; }
+  .soon .badge { width: 38px; height: 38px; font-size: 15px; }
+  .soon .name { font-size: 14px; }
+  .tips { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+  .tip { background: var(--card); border-radius: 10px; padding: 14px 16px; color: var(--dim); }
+  .tip b { color: var(--text); display: block; margin-bottom: 4px; }
+  .empty { background: var(--card); border-radius: 10px; padding: 34px; text-align: center; color: var(--dim); }
+  .empty b { display: block; color: var(--text); font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+  .empty button { margin-top: 14px; }
+  .notes { color: var(--dim); font-size: 12px; margin-top: 6px; max-width: 640px; }
+  .card { background: var(--card); border-radius: 10px; padding: 4px 18px; margin-bottom: 14px; }
+  .set { display: flex; align-items: center; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .set:last-child { border-bottom: none; }
+  .set .info b { display: block; font-weight: 600; margin-bottom: 2px; }
+  .path { font-family: Consolas, monospace; font-size: 12px; color: var(--dim); word-break: break-all; user-select: text; }
+  .switch { width: 38px; height: 22px; border-radius: 11px; background: #44444e; position: relative; cursor: pointer; flex-shrink: 0; transition: background .15s; }
+  .switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left .15s; }
+  .switch.on { background: var(--accent); }
+  .switch.on::after { left: 19px; }
+  .menu { position: fixed; background: #2f2f36; border: 1px solid #44444e; border-radius: 8px; padding: 4px; min-width: 170px; box-shadow: 0 8px 24px rgba(0,0,0,.45); z-index: 10; }
+  .menu div { padding: 7px 12px; border-radius: 5px; cursor: pointer; }
+  .menu div:hover { background: var(--accent); }
+  .menu div.danger:hover { background: #c0392b; }
+  .menu hr { border: none; border-top: 1px solid #44444e; margin: 4px 0; }
+  .link { color: var(--accent-2); cursor: pointer; }
+  .link:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <aside>
+    <div class="brand"><div class="gem"></div>Crystal Suite</div>
+    <div class="nav" data-page="apps"><svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>All apps</div>
+    <div class="nav" data-page="updates"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 8A5.5 5.5 0 1 1 11.6 3.8"/><path d="M13.6 1.8v3.4h-3.4"/></svg>Updates<span class="count" id="ucount" hidden></span></div>
+    <div class="nav" data-page="settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.3"/><path d="M8 1.2v2M8 12.8v2M1.2 8h2M12.8 8h2M3.2 3.2l1.4 1.4M11.4 11.4l1.4 1.4M3.2 12.8l1.4-1.4M11.4 4.6l1.4-1.4"/></svg>Settings</div>
+    <div class="spacer"></div>
+    <div class="foot" id="foot">Free &amp; open source<br />No account, no subscription.</div>
+  </aside>
+  <main id="main"></main>
+</div>
+<script>
+  const api = window.crystalSuite;
+  let state = null;
+  let page = 'apps';
+  let lastHtml = '';
+  let menu = null;
+
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const mb = (n) => (n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB');
+  function ago(t) {
+    if (!t) return 'never';
+    const s = Math.round((Date.now() - t) / 1000);
+    if (s < 45) return 'just now';
+    if (s < 3600) return Math.round(s / 60) + ' min ago';
+    if (s < 86400) return Math.round(s / 3600) + ' h ago';
+    return new Date(t).toLocaleDateString();
+  }
+  const badge = (a) => `<div class="badge" style="color:${esc(a.color)};background:${esc(a.bg)}">${esc(a.badge)}</div>`;
+  const releasedApps = () => state.apps.filter((a) => a.installed || a.available);
+
+  function statusHtml() {
+    const c = state.catalog;
+    if (c.status === 'loading') return '<span class="spin"></span>Checking for updates…';
+    if (c.status === 'offline') return `<span class="dot offline"></span>Offline${c.checkedAt ? ' · last checked ' + ago(c.checkedAt) : ''}`;
+    if (c.status === 'ok') return `<span class="dot"></span>Checked ${ago(c.checkedAt)}`;
+    return '';
+  }
+
+  function banners() {
+    let h = '';
+    if (state.launcherUpdate) h += `<div class="banner"><div class="msg"><b>Crystal Suite ${esc(state.launcherUpdate)} is available.</b> Download the new installer to update the launcher.</div><button data-act="launcher-update">Download</button></div>`;
+    if (state.notice) h += `<div class="banner"><div class="msg">${esc(state.notice.text)}</div><button class="ghost" data-act="dismiss-notice">Dismiss</button></div>`;
+    if (state.catalog.status === 'offline' && page !== 'settings') h += `<div class="banner warn"><div class="msg">Can't reach the app catalog — ${esc(state.catalog.error)} Installed apps still work offline.</div><button class="ghost" data-act="refresh">Retry</button></div>`;
+    return h;
+  }
+
+  function progressHtml(a) {
+    const t = a.task;
+    if (t.phase === 'download') {
+      const pct = t.total ? Math.min(100, Math.round((t.received / t.total) * 100)) : 0;
+      const verb = t.kind === 'update' ? 'Updating' : 'Downloading';
+      return `<div class="bar"><i style="width:${pct}%"></i></div><div class="line">${verb}… ${pct}% · ${mb(t.received)} of ${mb(t.total)}</div>`;
+    }
+    return `<div class="bar busy"><i></i></div><div class="line">${t.phase === 'verify' ? 'Verifying download…' : 'Installing…'}</div>`;
+  }
+
+  function rowHtml(a, mode) {
+    const inst = a.installed;
+    let line = '';
+    let actions = '';
+    if (a.task) {
+      line = progressHtml(a);
+      actions = a.task.phase === 'download' ? `<button class="ghost" data-act="cancel" data-id="${a.id}">Cancel</button>` : '<button disabled>Installing…</button>';
+    } else if (inst) {
+      const parts = [];
+      if (a.update) parts.push(`Update available: version ${esc(a.available.version)}`);
+      else parts.push(state.catalog.status === 'ok' ? 'Up to date' : 'Installed');
+      if (a.running) parts.push('Running');
+      line = `<div class="line">${parts.join(' · ')}</div>`;
+      if (a.update && a.needsLauncher) actions += `<button class="ghost" data-act="launcher-update">Update Crystal Suite</button>`;
+      else if (a.update) actions += `<button class="ghost" data-act="install" data-id="${a.id}">Update</button>`;
+      actions += `<button data-act="launch" data-id="${a.id}">Open</button><button class="ghost icon" data-act="more" data-id="${a.id}" title="More">⋯</button>`;
+    } else if (a.available) {
+      line = `<div class="line">${mb(a.available.size)} download · version ${esc(a.available.version)}</div>`;
+      actions = a.needsLauncher
+        ? `<button class="ghost" data-act="launcher-update">Needs Crystal Suite ${esc(a.needsLauncher)}</button>`
+        : `<button data-act="install" data-id="${a.id}">Install</button>`;
+    }
+    if (a.error) line += `<div class="line err">${esc(a.error)}<a data-act="clear-error" data-id="${a.id}">Dismiss</a></div>`;
+    const ver = inst ? `<span class="ver">${esc(inst.version)}</span>` : '';
+    const newVer = mode === 'updates' && a.update ? ` <span class="ver new">→ ${esc(a.available.version)}</span>` : '';
+    const notes = mode === 'updates' && a.available && a.available.notes ? `<div class="notes">${esc(a.available.notes)}</div>` : '';
+    return `<div class="row${inst ? ' installed' : ''}" data-id="${a.id}">${badge(a)}
+      <div class="info"><div class="name">${esc(a.name)}${ver}${newVer}</div><div class="desc">${esc(a.description)}</div>${notes}${line}</div>
+      <div class="actions">${actions}</div></div>`;
+  }
+
+  function appsPage() {
+    const installed = state.apps.filter((a) => a.installed);
+    const available = state.apps.filter((a) => !a.installed && (a.available || a.task));
+    const soon = state.apps.filter((a) => !a.installed && !a.available && !a.task);
+    let h = `<header><h1>All apps</h1><div class="status">${statusHtml()}</div><button class="ghost" data-act="refresh">Check for updates</button></header>${banners()}`;
+    if (installed.length) h += `<div class="section">Installed</div><div class="rows">${installed.map((a) => rowHtml(a)).join('')}</div>`;
+    if (available.length) h += `<div class="section">${installed.length ? 'Available' : 'Available to install'}</div><div class="rows">${available.map((a) => rowHtml(a)).join('')}</div>`;
+    if (!installed.length && !available.length && state.catalog.status !== 'loading') {
+      h += `<div class="empty"><b>No apps to show yet</b>Crystal Suite needs an internet connection once to download its apps.<br /><button data-act="refresh">Try again</button></div>`;
+    }
+    if (soon.length) h += `<div class="section">Coming soon</div><div class="soon">${soon.map((a) => `<div class="row">${badge(a)}<div class="info"><div class="name">${esc(a.name)}</div><div class="desc">${esc(a.description)}</div></div></div>`).join('')}</div>`;
+    if (installed.some((a) => a.id === 'photon')) {
+      h += `<div class="section">Getting started with Photon</div><div class="tips">
+        <div class="tip"><b>Open anything</b>Drag PNG, JPEG, WebP, GIF, SVG or PSD files onto the window, or paste with Ctrl+V.</div>
+        <div class="tip"><b>Photoshop shortcuts</b>Same keys you know: B brush, V move, M marquee, Ctrl+T transform, Ctrl+J layer via copy.</div>
+        <div class="tip"><b>Save as PSD</b>Layers, masks and blend modes round-trip with Photoshop, GIMP and Photopea.</div></div>`;
+    }
+    return h;
+  }
+
+  function updatesPage() {
+    const ups = state.apps.filter((a) => a.update || (a.task && a.task.kind === 'update'));
+    let h = `<header><h1>Updates</h1><div class="status">${statusHtml()}</div>`;
+    h += ups.some((a) => a.update && !a.task && !a.needsLauncher) ? '<button data-act="update-all">Update all</button></header>' : '<button class="ghost" data-act="refresh">Check for updates</button></header>';
+    h += banners();
+    if (ups.length) h += `<div class="rows">${ups.map((a) => rowHtml(a, 'updates')).join('')}</div>`;
+    else {
+      const any = state.apps.some((a) => a.installed);
+      h += `<div class="empty"><b>${any ? 'All your apps are up to date' : 'No apps installed yet'}</b>${state.catalog.status === 'offline' ? "You're offline, so new versions can't be checked right now." : 'Last checked ' + ago(state.catalog.checkedAt) + '.'}${any ? '' : '<br /><button data-page="apps">Browse apps</button>'}</div>`;
+    }
+    h += `<div class="section">Automatic updates</div><div class="card"><div class="set"><div class="info"><b>Update apps automatically</b><span class="desc">New versions install in the background. Open apps switch to the new version the next time you start them.</span></div>${sw('autoUpdate')}</div></div>`;
+    return h;
+  }
+
+  const sw = (key) => `<div class="switch${state.settings[key] ? ' on' : ''}" role="switch" aria-checked="${!!state.settings[key]}" data-act="toggle" data-key="${key}"></div>`;
+
+  function settingsPage() {
+    return `<header><h1>Settings</h1></header>${banners()}
+      <div class="section">Apps</div>
+      <div class="card">
+        <div class="set"><div class="info"><b>Update apps automatically</b><span class="desc">Download and install new versions in the background.</span></div>${sw('autoUpdate')}</div>
+        <div class="set"><div class="info"><b>Add a desktop shortcut when installing an app</b><span class="desc">A Start menu shortcut is always added.</span></div>${sw('desktopShortcut')}</div>
+      </div>
+      <div class="section">Storage</div>
+      <div class="card"><div class="set"><div class="info"><b>Install location</b><div class="path">${esc(state.appsDir)}</div></div><button class="ghost" data-act="open-apps-folder">Open folder</button></div></div>
+      <div class="section">About</div>
+      <div class="card">
+        <div class="set"><div class="info"><b>Crystal Suite ${esc(state.version)}</b><span class="desc">Free and open source (MIT). No account, no subscription, no tracking — apps run entirely on this computer.</span></div><button class="ghost" data-act="refresh">Check for updates</button></div>
+        <div class="set"><div class="info"><span class="link" data-act="url" data-key="repo">Source code on GitHub</span> · <span class="link" data-act="url" data-key="releases">Release notes</span> · <span class="link" data-act="url" data-key="issues">Report a problem</span></div></div>
+      </div>`;
+  }
+
+  function render() {
+    if (!state) return;
+    document.querySelectorAll('.nav').forEach((n) => n.classList.toggle('active', n.dataset.page === page));
+    const ups = state.apps.filter((a) => a.update).length;
+    const uc = document.getElementById('ucount');
+    uc.hidden = !ups;
+    uc.textContent = ups;
+    document.getElementById('foot').innerHTML = `Version ${esc(state.version)}<br />Free &amp; open source · No account`;
+    const html = page === 'updates' ? updatesPage() : page === 'settings' ? settingsPage() : appsPage();
+    if (html !== lastHtml) {
+      const main = document.getElementById('main');
+      const scroll = main.scrollTop;
+      main.innerHTML = html;
+      main.scrollTop = scroll;
+      lastHtml = html;
+    }
+  }
+
+  function closeMenu() { if (menu) { menu.remove(); menu = null; } }
+  function openMenu(btn, id) {
+    closeMenu();
+    const a = state.apps.find((x) => x.id === id);
+    if (!a) return;
+    menu = document.createElement('div');
+    menu.className = 'menu';
+    menu.innerHTML = `<div data-act="launch" data-id="${id}">Open ${esc(a.name)}</div><div data-act="reveal" data-id="${id}">Show in folder</div><hr /><div class="danger" data-act="uninstall" data-id="${id}">Uninstall…</div>`;
+    document.body.appendChild(menu);
+    const r = btn.getBoundingClientRect();
+    menu.style.top = Math.min(r.bottom + 4, innerHeight - menu.offsetHeight - 8) + 'px';
+    menu.style.left = Math.max(8, r.right - menu.offsetWidth) + 'px';
+  }
+
+  document.addEventListener('click', (e) => {
+    const nav = e.target.closest('[data-page]');
+    if (nav) { page = nav.dataset.page; closeMenu(); render(); return; }
+    const el = e.target.closest('[data-act]');
+    const inMenu = menu && menu.contains(e.target);
+    if (!el || (el.dataset.act !== 'more' && !inMenu)) closeMenu();
+    if (!el) return;
+    const id = el.dataset.id;
+    switch (el.dataset.act) {
+      case 'install': api.install(id); break;
+      case 'cancel': api.cancel(id); break;
+      case 'launch': api.launch(id); break;
+      case 'reveal': api.reveal(id); break;
+      case 'uninstall': api.uninstall(id); break;
+      case 'more': if (menu) closeMenu(); else openMenu(el, id); break;
+      case 'refresh': api.refresh(); break;
+      case 'update-all': state.apps.filter((a) => a.update && !a.task && !a.needsLauncher).forEach((a) => api.install(a.id)); break;
+      case 'toggle': api.setSetting(el.dataset.key, !state.settings[el.dataset.key]); break;
+      case 'open-apps-folder': api.openAppsFolder(); break;
+      case 'clear-error': api.clearError(id); break;
+      case 'dismiss-notice': api.dismissNotice(); break;
+      case 'launcher-update': api.openUrl('launcher-update'); break;
+      case 'url': api.openUrl(el.dataset.key); break;
+    }
+    if (inMenu) closeMenu();
+  });
+  document.addEventListener('dblclick', (e) => {
+    const row = e.target.closest('.row.installed');
+    if (row && !e.target.closest('button')) api.launch(row.dataset.id);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeMenu();
+    if (e.key === 'F5' || (e.ctrlKey && e.key.toLowerCase() === 'r')) { e.preventDefault(); api.refresh(); }
+  });
+  window.addEventListener('blur', closeMenu);
+  document.getElementById('main').addEventListener('scroll', closeMenu);
+
+  api.onState((s) => { state = s; render(); });
+  api.getState().then((s) => { if (!state) { state = s; render(); } });
+  setInterval(render, 30000); // keep "checked x min ago" fresh
+</script>
+</body>
+</html>
