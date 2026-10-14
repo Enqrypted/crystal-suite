@@ -1,0 +1,11 @@
+{
+  "id": "prism",
+  "name": "Prism",
+  "version": "0.1.0",
+  "description": "Clean, private web browser",
+  "main": "main.cjs",
+  "minLauncher": "0.2.0",
+  "notes": "First release: a clean Chromium browser with built-in ad & tracker blocking (EasyList, EasyPrivacy, uBlock Origin lists), HTTPS upgrades, third-party cookie blocking, private windows, tabs, bookmarks, history, downloads and no telemetry.",
+  "urlSchemes": ["http", "https"],
+  "fileTypes": ["html", "htm", "xhtml", "shtml", "pdf"]
+}

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' https: http: data:; style-src 'self' 'unsafe-inline'; script-src 'self'" />
+<title>Prism</title>
+</head>
+<body>
+<div id="chrome">
+  <div id="strip">
+    <div id="private-badge" title="Private window: history, cookies and site data are forgotten when you close it."></div>
+    <div id="tabs"></div>
+    <button id="newtab" class="ib" title="New tab (Ctrl+T)"></button>
+    <div class="drag-fill"></div>
+  </div>
+  <div id="toolbar">
+    <button id="back" class="ib" title="Back (Alt+Left)"></button>
+    <button id="forward" class="ib" title="Forward (Alt+Right)"></button>
+    <button id="reload" class="ib" title="Reload (F5)"></button>
+    <div id="omnibox">
+      <button id="sec" class="chip" tabindex="-1"></button>
+      <div id="urlwrap">
+        <input id="url" spellcheck="false" autocomplete="off" />
+        <div id="urlview"></div>
+      </div>
+      <button id="zoom" class="chip" title="Reset zoom" hidden></button>
+      <button id="star" class="ib small" title="Bookmark this tab (Ctrl+D)"></button>
+    </div>
+    <button id="shield" class="ib" title="Ad &amp; tracker blocking"><span class="count"></span></button>
+    <button id="dl" class="ib" title="Downloads (Ctrl+J)" hidden><span class="bar"><i></i></span></button>
+    <button id="menu" class="ib" title="Menu"></button>
+  </div>
+  <div id="bookmarks" hidden></div>
+  <div id="infobar" hidden></div>
+  <div id="findbar" hidden>
+    <input id="findtext" spellcheck="false" placeholder="Find in page" />
+    <span id="findcount"></span>
+    <button id="findprev" class="ib small" title="Previous (Shift+Enter)"></button>
+    <button id="findnext" class="ib small" title="Next (Enter)"></button>
+    <button id="findclose" class="ib small" title="Close (Esc)"></button>
+  </div>
+</div>
+<script type="module" src="./ui.ts"></script>
+</body>
+</html>

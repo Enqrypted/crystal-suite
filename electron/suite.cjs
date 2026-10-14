@@ -19,6 +19,7 @@ const CATALOG_CACHE = path.join(HOME, 'catalog-cache.json');
 /** Apps the launcher can present before (or without) a catalog, including unreleased ones. */
 const KNOWN = [
   { id: 'photon', badge: 'Ph', name: 'Photon', description: 'Photo editing, retouching & compositing', color: '#31a8ff', bg: '#001e36' },
+  { id: 'prism', badge: 'Pr', name: 'Prism', description: 'Clean, private web browser', color: '#b794ff', bg: '#1d1238' },
   { id: 'vector', badge: 'Ve', name: 'Vector', description: 'Vector illustration & logos', color: '#ff9a00', bg: '#330000' },
   { id: 'darkroom', badge: 'Dr', name: 'Darkroom', description: 'Photo library & RAW development', color: '#31c5f0', bg: '#001d26' },
   { id: 'cut', badge: 'Ct', name: 'Cut', description: 'Video editing', color: '#9999ff', bg: '#00005b' },
@@ -120,13 +121,17 @@ class Suite extends EventEmitter {
       bg: c.bg || known.bg || '#26262b',
     };
   }
-  /** Picks the installed app that opens these files (Photon for images and projects). */
-  appForFiles(files) {
-    const ext = path.extname(files[0] || '').slice(1).toLowerCase();
+  /** Picks the app that opens a file or web address: an installed app that declares it, else the usual one. */
+  appFor(targets) {
+    const first = targets[0] || '';
+    const scheme = /^([a-z][a-z0-9+.-]*):\/\//i.exec(first);
+    const key = scheme ? scheme[1].toLowerCase() : path.extname(first).slice(1).toLowerCase();
     for (const id of Object.keys(this.installed)) {
-      const types = this.manifest(id).fileTypes;
-      if (Array.isArray(types) && types.includes(ext)) return id;
+      const m = this.manifest(id);
+      const list = scheme ? m.urlSchemes : m.fileTypes;
+      if (Array.isArray(list) && list.includes(key)) return id;
     }
+    if (scheme || /^(html?|xhtml|shtml|pdf)$/.test(key)) return 'prism';
     return 'photon';
   }
   launchTarget() {
@@ -242,8 +247,10 @@ class Suite extends EventEmitter {
       extractZip(fs.readFileSync(zipFile), partial);
       const manifest = readJson(path.join(partial, 'app.json'), null);
       if (!manifest || manifest.id !== id) throw new Error('The downloaded package is not a valid Crystal Suite app.');
-      const entryFile = path.resolve(partial, typeof manifest.entry === 'string' ? manifest.entry : 'index.html');
-      if (!entryFile.startsWith(partial + path.sep) || !fs.existsSync(entryFile)) throw new Error('The downloaded package is missing its start page.');
+      // a page app starts from its HTML entry, a module app from its main-process module
+      const start = typeof manifest.main === 'string' ? manifest.main : typeof manifest.entry === 'string' ? manifest.entry : 'index.html';
+      const entryFile = path.resolve(partial, start);
+      if (!entryFile.startsWith(partial + path.sep) || !fs.existsSync(entryFile)) throw new Error('The downloaded package is missing its start file.');
       fs.rmSync(finalDir, { recursive: true, force: true });
       fs.renameSync(partial, finalDir);
       for (const icon of ['icon.png', 'icon.ico']) {

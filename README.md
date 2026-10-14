@@ -7,6 +7,7 @@ The **Crystal Suite** app is a launcher (like Creative Cloud) that installs, upd
 | App | Status | Like |
 | --- | --- | --- |
 | **Photon** | ✅ Available (install it from the launcher) | Photoshop |
+| **Prism** | ✅ Available (from the launcher, or as its own Prism.exe) | Chrome, minus the tracking |
 | Vector | Planned | Illustrator |
 | Darkroom | Planned | Lightroom |
 | Cut | Planned | Premiere Pro |
@@ -17,12 +18,14 @@ The **Crystal Suite** app is a launcher (like Creative Cloud) that installs, upd
 
 Get **`CrystalSuite-Setup-x.y.z.exe`** from the [latest release](https://github.com/Enqrypted/crystal-suite/releases/latest) (or the portable **`CrystalSuite-Portable-x.y.z.exe`**, no installation needed).
 
-Crystal Suite is a launcher, like Creative Cloud: open it, click **Install** next to Photon and it downloads (about 270 KB, because the apps share the launcher's runtime), verifies and installs it. From then on:
+Crystal Suite is a launcher, like Creative Cloud: open it, click **Install** next to an app and it downloads (Photon is about 270 KB and Prism about 3 MB, because the apps share the launcher's runtime), verifies and installs it. From then on:
 
-- **Open** starts the app; Photon also gets its own Start-menu (and optional desktop) shortcut and taskbar icon.
+- **Open** starts the app; each app also gets its own Start-menu (and optional desktop) shortcut and taskbar icon.
 - New versions show up under **Updates** (with a count in the sidebar). They install in the background automatically unless you turn that off in **Settings**; an app that is open keeps running and switches to the new version the next time you start it.
 - **⋯ → Uninstall** removes an app. Uninstalling Crystal Suite removes its apps too.
 - Everything works offline once installed: the internet is only used to fetch the app catalog and downloads. No account, no telemetry.
+
+Prism is also available on its own: **`Prism-Setup-x.y.z.exe`** / **`Prism-Portable-x.y.z.exe`** on the [Prism release](https://github.com/Enqrypted/crystal-suite/releases?q=prism) (no launcher needed).
 
 Apps are stored in `%LOCALAPPDATA%\Crystal Suite\Apps`. The builds are not code-signed, so Windows SmartScreen may show "Windows protected your PC" the first time: click **More info → Run anyway**.
 
@@ -34,6 +37,7 @@ Requirements: [Node.js](https://nodejs.org) 18 or newer.
 npm install
 npm run app        # the Crystal Suite launcher (installs Photon from the published catalog)
 npm run photon     # builds Photon from source and opens it directly
+npm run prism      # builds Prism from source and opens it as a standalone app
 npm run dev        # Photon in your browser with hot reload: http://localhost:5173
 ```
 
@@ -44,8 +48,8 @@ On Windows you can also double-click **`Crystal Suite.cmd`** or **`Photon.cmd`**
 ## How the launcher gets apps
 
 - `catalog.json` (in this repo, read from `raw.githubusercontent.com`) lists each app's version, download URL, size and SHA-256, plus the latest launcher version.
-- Each app is a zip on a GitHub release (`photon-v0.1.0` → `photon-0.1.0.zip`) containing its single-file `index.html`, `app.json` manifest and icons.
-- The launcher downloads it with progress, rejects it unless the size and SHA-256 match the catalog, unpacks it to `Apps\<id>\<version>` (checking that every path stays inside that folder) and runs it in a sandboxed window with a narrow file-access bridge.
+- Each app is a zip on a GitHub release (`photon-v0.1.0` → `photon-0.1.0.zip`) with an `app.json` manifest and icons. A *page app* (Photon) is a single `index.html` that runs in a sandboxed window with a narrow file-access bridge. A *module app* (Prism) ships a `main.cjs` that the launcher loads to create its own windows.
+- The launcher downloads it with progress, rejects it unless the size and SHA-256 match the catalog, and unpacks it to `Apps\<id>\<version>` (checking that every path stays inside that folder). An app's manifest can require a minimum launcher version (`minLauncher`); older launchers then offer the launcher update instead.
 
 To test against a local catalog: `node scripts/pack-apps.cjs --base http://127.0.0.1:8765/`, serve `release/apps`, and start the launcher with `CRYSTAL_CATALOG=http://127.0.0.1:8765/catalog.json` (and `CRYSTAL_HOME=<folder>` to keep test installs separate).
 
@@ -56,6 +60,11 @@ To test against a local catalog: `node scripts/pack-apps.cjs --base http://127.0
 npm run pack:apps                     # builds Photon, writes release/apps/photon-<v>.zip and catalog.json
 gh release create photon-v<v> release/apps/photon-<v>.zip --title "Photon <v>" --latest=false
 git commit -am "Photon <v>" && git push   # launchers see the new version once catalog.json is pushed
+
+# A new Prism version: bump "version" in apps/prism/app.json, then
+npm run pack:apps && npm run dist:prism  # the launcher package + the standalone Prism-Setup/Portable exes
+gh release create prism-v<v> release/apps/prism-<v>.zip release/prism/Prism-Setup-<v>.exe release/prism/Prism-Portable-<v>.exe --title "Prism <v>" --latest=false
+git commit -am "Prism <v>" && git push
 
 # A new launcher version: bump "version" in package.json, then
 npm run pack:apps && npm run dist     # catalog.json now advertises the new launcher too
@@ -71,6 +80,18 @@ If `npm run dist` fails with *"Cannot create symbolic link: A required privilege
 cd %LOCALAPPDATA%\electron-builder\Cache\winCodeSign
 <path-to-this-repo>\node_modules\7zip-bin\win\x64\7za.exe x <the-downloaded-file>.7z -owinCodeSign-2.6.0 -xr!darwin
 ```
+
+## Prism features
+
+A clean Chromium browser (same engine as Chrome and Edge) with privacy built in and nothing extra: no account, no sync, no news feed, no sponsored tiles, no telemetry.
+
+- **Ad & tracker blocking** on by default — EasyList, EasyPrivacy and uBlock Origin filters (via Ghostery's open-source engine): blocks ad and tracker requests, hides leftover ad slots, runs uBlock's anti-ad scriptlets. A shield in the toolbar shows the count per page and switches protections off for a site. The lists ship with Prism and refresh in the background every few days.
+- **Privacy defaults** — third-party cookies blocked, every site upgraded to HTTPS (falls back to http:// and says "Not secure" when a site has no HTTPS), Global Privacy Control + Do Not Track sent, WebRTC can't leak your local IP, a plain Chrome user agent, DuckDuckGo search (or Brave Search, Startpage, Ecosia, Google, Bing), optional "clear everything when Prism closes".
+- **Private windows** (Ctrl+Shift+N) — nothing is written to disk; all their cookies and data are dropped when the last private window closes.
+- **A Chrome-like UI** — tabs (drag to reorder, mute, duplicate, reopen closed), address bar with history/bookmark suggestions, bookmarks + bookmarks bar, history, downloads (pause, resume, retry), find in page, zoom per site, full screen, print, save page, view source, developer tools, pop-up blocker, permission prompts (camera, microphone, location, notifications…) remembered per site, its own error pages, light/dark/system theme, session restore.
+- **Default browser** — Settings → Make default registers Prism with Windows and opens the Default apps page.
+
+Not included (on purpose or not yet): extensions, sync, a built-in password manager, and DRM-protected streaming (Netflix and similar sites need Widevine, which is only available to licensed browsers).
 
 ## Photon features
 
@@ -114,8 +135,17 @@ apps/photon/            Photon (TypeScript, no UI framework)
   src/panels/           Layers, Properties, Color, History, Channels, Paths, …
   src/dialogs/          dialogs: adjustments, filters, Liquify, Camera Raw, Layer Style, color picker, …
 apps/photon/app.json    Photon manifest (version, window, file types), packaged with the app
+apps/prism/             Prism (TypeScript)
+  src/main/             main process: windows & tabs, profiles/privacy, ad blocking, downloads, history,
+                        bookmarks, permissions, menus, default-browser registration, prism:// pages
+  src/ui/               the tab strip + toolbar UI and the address-bar suggestion overlay
+  src/pages/            New Tab, Settings, History, Downloads and Bookmarks pages
+  src/preload/          bridges for the UI and for web pages (element hiding, internal-page API)
+  standalone/main.cjs   host for running Prism as its own Prism.exe
 electron/               Crystal Suite: launcher UI, app manager (catalog, download, verify, install,
                         update, shortcuts), zip reader, app windows, native file dialogs
+scripts/build-prism.cjs bundles Prism (esbuild + vite) and snapshots the filter lists
+scripts/dist-prism.cjs  builds the standalone Prism installers
 scripts/pack-apps.cjs   packages apps into release zips and writes catalog.json
 catalog.json            the published app catalog the launcher reads
 ```
@@ -124,4 +154,4 @@ Each layer is a canvas positioned in document space; undo is snapshot-based (str
 
 ## License
 
-MIT — see [LICENSE](LICENSE). PSD reading/writing uses [ag-psd](https://github.com/Agamnentzar/ag-psd) (MIT). "Photoshop" is a trademark of Adobe; Crystal Suite is an independent project and is not affiliated with Adobe.
+MIT — see [LICENSE](LICENSE). PSD reading/writing uses [ag-psd](https://github.com/Agamnentzar/ag-psd) (MIT). Prism's ad blocking uses [@ghostery/adblocker](https://github.com/ghostery/adblocker) (MPL-2.0) — see [apps/prism/THIRD_PARTY_NOTICES.md](apps/prism/THIRD_PARTY_NOTICES.md). "Photoshop" is a trademark of Adobe and "Chrome" a trademark of Google; Crystal Suite is an independent project and is not affiliated with either.

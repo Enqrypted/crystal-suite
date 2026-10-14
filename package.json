@@ -1,7 +1,7 @@
 {
   "name": "crystal-suite",
   "productName": "Crystal Suite",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Crystal Suite - a free, open-source, local creative suite. The launcher downloads and updates its apps; Photon is its Photoshop-style image editor.",
   "license": "MIT",
   "private": true,
@@ -12,25 +12,30 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && vite build && node scripts/build-prism.cjs",
+    "build:prism": "node scripts/build-prism.cjs",
     "typecheck": "tsc --noEmit",
     "app": "electron .",
     "photon": "vite build && electron . --photon",
+    "prism": "node scripts/build-prism.cjs && electron apps/prism/standalone/main.cjs",
     "start": "electron .",
     "pack:apps": "npm run build && node scripts/pack-apps.cjs",
     "dist": "electron-builder --win",
     "dist:dir": "electron-builder --win --dir",
-    "release:all": "npm run pack:apps && npm run dist",
+    "dist:prism": "node scripts/build-prism.cjs && node scripts/dist-prism.cjs",
+    "release:all": "npm run pack:apps && npm run dist && node scripts/dist-prism.cjs",
     "postinstall": "node scripts/patch-nsis-template.cjs",
     "predist": "node scripts/patch-nsis-template.cjs"
   },
   "devDependencies": {
+    "@ghostery/adblocker": "^2.20.1",
+    "ag-psd": "^20.2.1",
     "electron": "^33.2.0",
     "electron-builder": "^25.1.8",
+    "esbuild": "^0.28.2",
     "typescript": "^5.6.3",
     "vite": "^5.4.10",
-    "vite-plugin-singlefile": "^2.0.3",
-    "ag-psd": "^20.2.1"
+    "vite-plugin-singlefile": "^2.0.3"
   },
   "author": "Crystal Suite contributors",
   "build": {

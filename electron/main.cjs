@@ -1,6 +1,8 @@
-// Crystal Suite desktop shell: the launcher (installs, updates and opens apps) plus one window per
-// open app. Apps are downloaded packages (see suite.cjs); `--photon` runs the local dev build of Photon.
-const { app, BrowserWindow, ipcMain, dialog, Menu, shell } = require('electron');
+// Crystal Suite desktop shell: the launcher (installs, updates and opens apps) plus the apps' windows.
+// Apps are downloaded packages (see suite.cjs). A package is either a page app (Photon: one HTML page
+// in a sandboxed window) or a module app (Prism: its main.cjs runs here and manages its own windows).
+// `--photon` runs the local dev build of Photon.
+const { app, BrowserWindow, ipcMain, dialog, Menu, shell, protocol } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -10,22 +12,30 @@ const APP_PRELOAD = path.join(__dirname, 'preload.cjs');
 const LAUNCHER_PRELOAD = path.join(__dirname, 'launcher-preload.cjs');
 /** Only pass an icon that exists (Electron warns on undefined paths). */
 const iconOpt = (p) => (p && fs.existsSync(p) ? { icon: p } : {});
-const FILE_RE = /\.(psd|psb|phtn|png|jpe?g|gif|webp|bmp|svg|ico|avif)$/i;
+// Prism's internal pages (prism://settings, ...) need a standard, secure scheme, registered before startup.
+protocol.registerSchemesAsPrivileged([{ scheme: 'prism', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } }]);
+
+if (process.env.CRYSTAL_USER_DATA) app.setPath('userData', path.resolve(process.env.CRYSTAL_USER_DATA)); // tests
 
 let suite = null; // created once the app is ready (it needs app paths)
 let launcher = null;
 const appWindows = new Map(); // app id -> Set<BrowserWindow>
+const modules = new Map(); // module app id -> { version, api }
 
-/** --open-app=<id>, --photon (dev build) and file paths from a command line. Switches are single tokens
- *  because Chromium reorders a second instance's command line (switches first), splitting "--x value". */
+const isFile = (p) => { try { return fs.statSync(p).isFile(); } catch { return false; } };
+
+/** --open-app=<id>, --photon (dev build), web addresses and file paths from a command line. Switches are
+ *  single tokens because Chromium reorders a second instance's command line (switches first). */
 function parseArgs(argv) {
   const args = argv.slice(1);
   const open = args.find((a) => a.toLowerCase().startsWith('--open-app='));
   const id = open ? open.slice(11).toLowerCase() : '';
+  const positional = args.filter((a) => !a.startsWith('-') && path.resolve(a) !== path.resolve(ROOT));
   return {
     appId: /^[a-z0-9-]{1,32}$/.test(id) ? id : '',
     dev: args.includes('--photon'),
-    files: args.filter((a) => !a.startsWith('-') && FILE_RE.test(a) && fs.existsSync(a)),
+    urls: positional.filter((a) => /^(https?|file):/i.test(a)),
+    files: positional.filter((a) => !/^[a-z][a-z0-9+.-]*:\/\//i.test(a) && isFile(a)),
   };
 }
 
@@ -59,17 +69,25 @@ const pushState = () => { if (launcher) launcher.webContents.send('suite:state',
 function windowsOf(id) { return [...(appWindows.get(id) || [])]; }
 function focusWindow(w) { if (w.isMinimized()) w.restore(); w.focus(); }
 
-/** Opens an installed app (or shows the launcher so it can be installed). */
-function openApp(id, files = []) {
+const isModuleApp = (id) => typeof suite.manifest(id).main === 'string';
+
+/** Opens an installed app (or shows the launcher so it can be installed). `args` are files or URLs. */
+function openApp(id, args = []) {
+  const name = suite.info(id).name;
   if (!suite.isInstalled(id)) {
-    const name = suite.info(id).name;
-    suite.setNotice({
-      appId: id,
-      text: files.length ? `Install ${name} to open ${path.basename(files[0])}.` : `${name} isn't installed yet. Install it below to get started.`,
-    });
+    const what = args[0] ? (/^[a-z]+:\/\//i.test(args[0]) ? args[0] : path.basename(args[0])) : '';
+    suite.setNotice({ appId: id, text: what ? `Install ${name} to open ${what}.` : `${name} isn't installed yet. Install it below to get started.` });
     showLauncher();
     return null;
   }
+  if (isModuleApp(id)) {
+    try { moduleApi(id).open(args); } catch (err) {
+      dialog.showErrorBox(name, `${name} couldn't start (${err.message}). Reinstall it from Crystal Suite.`);
+      showLauncher();
+    }
+    return null;
+  }
+  const files = args.filter(isFile);
   const dir = suite.appDir(id);
   const m = suite.manifest(id);
   const entry = path.resolve(dir, typeof m.entry === 'string' ? m.entry : 'index.html');
@@ -93,6 +111,67 @@ function openDevPhoton(files) {
 }
 function readManifest(p) { try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return {}; } }
 
+/** Loads (once) the main-process module of a module app. A newer installed version takes over the
+ *  next time the app starts after all windows of the running version are closed. */
+function moduleApi(id) {
+  const version = suite.installed[id].version;
+  const cur = modules.get(id);
+  if (cur && (cur.version === version || windowsOf(id).length)) return cur.api;
+  if (cur) unloadModule(id);
+  const dir = suite.appDir(id);
+  const m = suite.manifest(id);
+  const file = path.resolve(dir, m.main);
+  if (!file.startsWith(dir + path.sep) || !fs.existsSync(file)) throw new Error('the app files are missing');
+  const api = require(file).activate({
+    appId: id,
+    version,
+    appDir: dir,
+    dataDir: path.join(app.getPath('userData'), suite.info(id).name),
+    icon: suite.iconPng(id),
+    ico: suite.iconIco(id),
+    standalone: false,
+    launchCommand: () => {
+      const exe = suite.launchTarget();
+      return exe ? { exe, args: [`--open-app=${id}`] } : { exe: process.execPath, args: [ROOT, `--open-app=${id}`] };
+    },
+    decorateWindow: (win) => trackWindow(id, win, suite.info(id).name, suite.iconIco(id)),
+  });
+  modules.set(id, { version, api });
+  return api;
+}
+
+/** Shuts a module app down and forgets its code, so a reinstall or update loads fresh files. */
+function unloadModule(id) {
+  const cur = modules.get(id);
+  if (cur) {
+    try { cur.api.deactivate(); } catch { /* best effort */ }
+    modules.delete(id);
+  }
+  const dir = path.join(suite.appsDir, id) + path.sep;
+  for (const k of Object.keys(require.cache)) if (k.startsWith(dir)) delete require.cache[k];
+}
+
+/** Gives an app window its own taskbar identity and counts it as the app running. */
+function trackWindow(id, win, name, ico) {
+  if (process.platform === 'win32') {
+    try {
+      win.setAppDetails({
+        appId: `app.crystalsuite.${id}`,
+        ...(ico && fs.existsSync(ico) ? { appIconPath: ico, appIconIndex: 0 } : {}),
+        relaunchCommand: suite.relaunchCommand(id), relaunchDisplayName: name,
+      });
+    } catch { /* cosmetic */ }
+  }
+  if (!appWindows.has(id)) appWindows.set(id, new Set());
+  appWindows.get(id).add(win);
+  win.on('closed', () => {
+    appWindows.get(id).delete(win);
+    if (!appWindows.get(id).size) suite.cleanup(id); // drop versions replaced by an update while it was open
+    pushState();
+  });
+  pushState();
+}
+
 function createAppWindow(id, entry, m, files, icons) {
   const w = (m && typeof m.window === 'object' && m.window) || {};
   const num = (v, d) => (Number.isFinite(v) && v >= 200 && v <= 10000 ? v : d);
@@ -103,16 +182,6 @@ function createAppWindow(id, entry, m, files, icons) {
     title: name, ...iconOpt(icons.icon), autoHideMenuBar: true, show: false,
     webPreferences: { preload: APP_PRELOAD, contextIsolation: true, sandbox: true, spellcheck: false },
   });
-  // Group the app's windows under its own taskbar button and icon instead of Crystal Suite's.
-  if (process.platform === 'win32') {
-    try {
-      win.setAppDetails({
-        appId: `app.crystalsuite.${id}`,
-        ...(icons.ico && fs.existsSync(icons.ico) ? { appIconPath: icons.ico, appIconIndex: 0 } : {}),
-        relaunchCommand: suite.relaunchCommand(id), relaunchDisplayName: name,
-      });
-    } catch { /* cosmetic */ }
-  }
   win.removeMenu();
   if (w.maximize !== false) win.maximize();
   win.once('ready-to-show', () => win.show());
@@ -135,14 +204,7 @@ function createAppWindow(id, entry, m, files, icons) {
   });
   win.webContents.on('will-navigate', (e, url) => { if (!url.startsWith('file:')) e.preventDefault(); });
   if (files.length) win.webContents.once('did-finish-load', () => win.webContents.send('open-paths', files));
-  if (!appWindows.has(id)) appWindows.set(id, new Set());
-  appWindows.get(id).add(win);
-  win.on('closed', () => {
-    appWindows.get(id).delete(win);
-    if (!appWindows.get(id).size) suite.cleanup(id); // drop versions replaced by an update while it was open
-    pushState();
-  });
-  pushState();
+  trackWindow(id, win, name, icons.ico); // its own taskbar button and icon instead of Crystal Suite's
   return win;
 }
 
@@ -156,8 +218,10 @@ function handleArgs(argv, firstRun) {
     openDevPhoton(a.files);
     return;
   }
-  const id = a.appId || (a.files.length ? suite.appForFiles(a.files) : '');
+  const targets = [...a.urls, ...a.files];
+  const id = a.appId || (targets.length ? suite.appFor(targets) : '');
   if (!id) { showLauncher(); return; }
+  if (suite.isInstalled(id) && isModuleApp(id)) { openApp(id, targets); return; } // the app decides: new window, tabs...
   const w = windowsOf(id)[0];
   if (w && a.files.length) { w.webContents.send('open-paths', a.files); focusWindow(w); return; }
   if (w && !a.files.length) { focusWindow(w); return; }
@@ -179,7 +243,18 @@ const launcherApi = {
       type: 'question', buttons: ['Uninstall', 'Cancel'], defaultId: 1, cancelId: 1, noLink: true,
       title: 'Crystal Suite', message: `Uninstall ${name}?`, detail: `${name} will be removed from this computer. Your documents are not affected, and you can install it again at any time.`,
     });
-    if (r.response === 0) suite.uninstall(id);
+    if (r.response !== 0) return;
+    if (suite.running(id)) { suite.uninstall(id); return; } // reports "close it first"
+    if (isModuleApp(id)) {
+      // let the app undo what it registered with Windows (e.g. Prism as a browser) before its files go
+      unloadModule(id);
+      try {
+        const mod = require(path.resolve(suite.appDir(id), suite.manifest(id).main));
+        if (typeof mod.uninstall === 'function') await mod.uninstall();
+      } catch { /* the files are removed anyway */ }
+      unloadModule(id);
+    }
+    suite.uninstall(id);
   },
   'suite:launch': (id) => { openApp(String(id)); },
   'suite:reveal': (id) => { const d = suite.appDir(String(id)); shell.openPath(d || suite.appsDir); },
