@@ -26,6 +26,17 @@
       "sha256": "13020535f410836b53bc7c2d6a9e9dd5b8e9db3245bc5a9cea24213eed80d101",
       "minLauncher": "0.2.0",
       "notes": "First release: a clean Chromium browser with built-in ad & tracker blocking (EasyList, EasyPrivacy, uBlock Origin lists), HTTPS upgrades, third-party cookie blocking, private windows, tabs, bookmarks, history, downloads and no telemetry."
+    },
+    {
+      "id": "cut",
+      "name": "Cut",
+      "version": "0.1.0",
+      "description": "Video editing",
+      "url": "https://github.com/Enqrypted/crystal-suite/releases/download/cut-v0.1.0/cut-0.1.0.zip",
+      "size": 219236,
+      "sha256": "7a8f6114b5aede77af2cffe778896ea8dcb3713182bd109ec1ab1599e9c2fdf2",
+      "minLauncher": "0.2.0",
+      "notes": "First release: a Vegas-style video editor with video and audio tracks, split, trim, ripple, fades and crossfades, event volume and opacity, pan/crop, color effects, text titles, markers, snapping, timeline zoom, audio waveforms and thumbnails, and rendering to MP4 (H.264/AAC) or WebM."
     }
   ]
 }
