@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' file: blob: data:; style-src 'self' 'unsafe-inline'; script-src 'self'">
+  <title>Facet</title>
+  <link rel="stylesheet" href="./lib/controls.css">
+  <link rel="stylesheet" href="./desk.css">
+  <link rel="stylesheet" href="./home.css">
+</head>
+<body class="home">
+  <header class="top">
+    <div class="brand">
+      <div class="logo">Fc</div>
+      <div>
+        <div class="brand-name">Facet</div>
+        <div class="brand-sub">Folders &amp; widgets for your desktop</div>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button type="button" class="btn" id="organize">
+        <svg viewBox="0 0 16 16"><path d="M2.5 3.5h4v4h-4zM9.5 3.5h4v4h-4zM2.5 9.5h4v4h-4zM9.5 9.5h4v4h-4z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+        <span>Organize desktop…</span>
+      </button>
+      <button type="button" class="btn primary" id="add-folder">
+        <svg viewBox="0 0 16 16"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <span>Folder</span>
+      </button>
+      <button type="button" class="btn primary" id="add-clock">
+        <svg viewBox="0 0 16 16"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <span>Clock</span>
+      </button>
+    </div>
+  </header>
+  <main class="split">
+    <nav id="list" class="list"></nav>
+    <section id="detail" class="detail"></section>
+  </main>
+  <script type="module" src="./home.ts"></script>
+</body>
+</html>

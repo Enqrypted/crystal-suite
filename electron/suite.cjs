@@ -23,6 +23,7 @@ const KNOWN = [
   { id: 'vector', badge: 'Ve', name: 'Vector', description: 'Vector illustration & logos', color: '#ff9a00', bg: '#330000' },
   { id: 'darkroom', badge: 'Dr', name: 'Darkroom', description: 'Photo library & RAW development', color: '#31c5f0', bg: '#001d26' },
   { id: 'cut', badge: 'Ct', name: 'Cut', description: 'Video editing', color: '#9999ff', bg: '#00005b' },
+  { id: 'facet', badge: 'Fc', name: 'Facet', description: 'Desktop folders & widgets', color: '#5ce1c6', bg: '#00302a' },
   { id: 'motion', badge: 'Mo', name: 'Motion', description: 'Motion graphics & effects', color: '#d291ff', bg: '#1a0033' },
   { id: 'layout', badge: 'La', name: 'Layout', description: 'Page layout & publishing', color: '#ff3366', bg: '#49021f' },
 ];

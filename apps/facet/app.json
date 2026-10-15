@@ -1,0 +1,12 @@
+{
+  "id": "facet",
+  "name": "Facet",
+  "version": "0.1.0",
+  "description": "Desktop folders & widgets",
+  "badge": "Fc",
+  "color": "#5ce1c6",
+  "bg": "#00302a",
+  "main": "main.cjs",
+  "minLauncher": "0.2.0",
+  "notes": "First release: iPhone-style folders on your desktop with custom names (drop apps, shortcuts, files and folders in, click to open), always-open panels, a customizable clock (minimal, card, analog or stacked; font, weight, size, colour, date, seconds), frosted glass that matches your wallpaper, Organize Desktop to sort your desktop into folders in one go, and an option to hide the Windows desktop icons."
+}

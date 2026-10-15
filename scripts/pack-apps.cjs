@@ -44,6 +44,12 @@ const CONTENTS = {
       { name: 'THIRD_PARTY_NOTICES.md', data: fs.readFileSync(path.join(ROOT, 'apps', 'cut', 'THIRD_PARTY_NOTICES.md')) },
     ];
   },
+  // a module app: main process + preload + the desktop layer and window UI + FacetHelper.exe
+  facet: () => {
+    need(path.join(ROOT, 'dist', 'facet', 'main.cjs'));
+    need(path.join(ROOT, 'dist', 'facet', 'FacetHelper.exe'));
+    return tree(path.join(ROOT, 'dist', 'facet'));
+  },
 };
 
 function need(file) {
@@ -83,6 +89,10 @@ for (const id of Object.keys(CONTENTS)) {
     name: manifest.name,
     version: manifest.version,
     description: manifest.description,
+    // how the launcher draws the app before it's installed (launchers that don't know the app yet)
+    badge: manifest.badge,
+    color: manifest.color,
+    bg: manifest.bg,
     url: base ? base + file : `https://github.com/${REPO}/releases/download/${id}-v${manifest.version}/${file}`,
     size: zip.length,
     sha256,

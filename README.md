@@ -9,6 +9,7 @@ The **Crystal Suite** app is a launcher (like Creative Cloud) that installs, upd
 | **Photon** | ✅ Available (install it from the launcher) | Photoshop |
 | **Prism** | ✅ Available (from the launcher, or as its own Prism.exe) | Chrome, minus the tracking |
 | **Cut** | ✅ Available (install it from the launcher) | Sony Vegas Pro |
+| **Facet** | ✅ Available (install it from the launcher) | iPhone-style folders and widgets for the Windows desktop |
 | Vector | Planned | Illustrator |
 | Darkroom | Planned | Lightroom |
 | Motion | Planned | After Effects |
@@ -18,7 +19,7 @@ The **Crystal Suite** app is a launcher (like Creative Cloud) that installs, upd
 
 Get **`CrystalSuite-Setup-x.y.z.exe`** from the [latest release](https://github.com/Enqrypted/crystal-suite/releases/latest) (or the portable **`CrystalSuite-Portable-x.y.z.exe`**, no installation needed).
 
-Crystal Suite is a launcher, like Creative Cloud: open it, click **Install** next to an app and it downloads (Photon and Cut are about 250 KB, Prism about 3 MB, because the apps share the launcher's runtime), verifies and installs it. From then on:
+Crystal Suite is a launcher, like Creative Cloud: open it, click **Install** next to an app and it downloads (Photon, Cut and Facet are under 300 KB, Prism about 3 MB, because the apps share the launcher's runtime), verifies and installs it. From then on:
 
 - **Open** starts the app; each app also gets its own Start-menu (and optional desktop) shortcut and taskbar icon.
 - New versions show up under **Updates** (with a count in the sidebar). They install in the background automatically unless you turn that off in **Settings**; an app that is open keeps running and switches to the new version the next time you start it.
@@ -39,6 +40,7 @@ npm run app        # the Crystal Suite launcher (installs Photon from the publis
 npm run photon     # builds Photon from source and opens it directly
 npm run prism      # builds Prism from source and opens it as a standalone app
 npm run cut        # builds Cut from source and opens it
+npm run facet      # builds Facet from source and runs it (widgets on your desktop + its window)
 npm run dev        # Photon in your browser with hot reload: http://localhost:5173
 ```
 
@@ -67,6 +69,11 @@ npm run pack:apps
 gh release create cut-v<v> release/apps/cut-<v>.zip --title "Cut <v>" --latest=false
 git commit -am "Cut <v>" && git push
 
+# A new Facet version: bump "version" in apps/facet/app.json, then
+npm run pack:apps
+gh release create facet-v<v> release/apps/facet-<v>.zip --title "Facet <v>" --latest=false
+git commit -am "Facet <v>" && git push
+
 # A new Prism version: bump "version" in apps/prism/app.json, then
 npm run pack:apps && npm run dist:prism  # the launcher package + the standalone Prism-Setup/Portable exes
 gh release create prism-v<v> release/apps/prism-<v>.zip release/prism/Prism-Setup-<v>.exe release/prism/Prism-Portable-<v>.exe --title "Prism <v>" --latest=false
@@ -89,7 +96,7 @@ cd %LOCALAPPDATA%\electron-builder\Cache\winCodeSign
 
 ## Cut features
 
-A video editor laid out like Sony Vegas Pro: the timeline with track headers on top, and Project Media, Properties, Generators & Transitions, the Video Preview and the Master bus docked below. Dark, clean, and it all runs locally.
+A video editor laid out like Sony Vegas Pro: Project Media, Properties, Generators & Transitions, the Video Preview and the Master bus on top, the timeline with track headers below. Dark, clean, and it all runs locally.
 
 - **Timeline** — video and audio tracks (video files land as a grouped video + audio pair), drag events between tracks, Ctrl+drag to copy, trim either edge, **S** to split at the cursor, ripple editing (Ctrl+L), snapping to edges, the cursor, markers and the time selection (F8), quantize to frames, zoom with the arrow keys / Ctrl+wheel / slider / `` ` `` to fit, thumbnails on video events and waveforms on audio events, markers (M), time selection & loop playback (Q, I, O).
 - **Vegas-style handles** — drag an event's top corners for fade in/out (smooth, linear, fast or slow curves) and its top edge for volume (audio) or opacity (video); overlap two events on a track for an automatic crossfade.
@@ -98,6 +105,19 @@ A video editor laid out like Sony Vegas Pro: the timeline with track headers on 
 - **Media generators** — text, titles, lower thirds, solid colours and gradients.
 - **Render As** — MP4 (H.264 + AAC) or WebM (VP9 + Opus), project or preset resolution (up to 4K), frame rate, quality, audio bitrate, whole project or time selection, size estimate, live preview and progress; uses the computer's hardware encoder when available.
 - **Projects** — .cutproj files (media found again if the folder moves), relink offline media, undo/redo of every edit, autosave and crash recovery; imports MP4, MOV, MKV, WebM, MP3, WAV, M4A, OGG, FLAC, PNG, JPEG, WebP, GIF and BMP.
+
+## Facet features
+
+Folders and widgets that live on the Windows desktop itself: below your apps like desktop icons, still there after **Show desktop** (Win+D), and click-through everywhere else so the desktop keeps working.
+
+- **Folders like on an iPhone** — a frosted tile showing the first nine icons and the folder's name. Click it and it opens in place (click the title to rename it); click a shortcut to launch it. Drag apps, shortcuts, files or folders onto a folder from Explorer or the desktop, drag icons to reorder them or onto another folder to move them, right-click for Open / Show in folder / Rename / Remove. Or show a folder as an always-open **panel** with its own columns and rows.
+- **Crisp icons** — large Windows icons (apps that only ship small icons are shown at their best size instead of in Windows' white frame), real thumbnails for photos and videos, and game artwork from Steam's library for Steam shortcuts.
+- **Clock** — four faces (minimal, card, analog, stacked), six fonts, weight, size, colour and accent, 12/24-hour, seconds or a second hand, short or long date, glass or dark background, alignment, shadow and a blinking colon. Changes show live.
+- **Frosted glass** — drawn from your actual wallpaper (fill, fit, stretch, center, tile or span, per display), light or dark, with an optional tint per folder.
+- **Organize desktop** — sorts what's on your desktop into Apps, Games, Folders, Documents, Pictures, Videos, Music, Archives and more in one go, then optionally hides the Windows desktop icons. Nothing is moved or deleted: folders hold shortcuts.
+- **Everyday bits** — starts with Windows (silently), tray icon, lock widgets in place, names under icons on/off, every display gets its own widgets. Idles at well under 1% CPU.
+
+The desktop pinning, icons, wallpaper and desktop-icon toggle come from a small helper (`FacetHelper.exe`, about 25 KB) compiled from [apps/facet/native/FacetHelper.cs](apps/facet/native/FacetHelper.cs) with the C# compiler that ships with Windows.
 
 ## Prism features
 
@@ -158,6 +178,11 @@ apps/cut/               Cut (TypeScript)
   src/web/core/         project model, undo, media library (Mediabunny), frame streams, compositor,
                         audio mixer, transport, editing operations, renderer
   src/web/ui/           timeline, track headers, preview, media bin, properties, generators, dialogs
+apps/facet/             Facet (TypeScript)
+  src/main/             main process: desktop layers (one per display), click-through hit testing, icons,
+                        wallpaper, start with Windows, Organize desktop, the Facet window and tray
+  src/web/              the desktop layer (folders, open folders, clock, menus) and the Facet window
+  native/FacetHelper.cs Windows helper: desktop pinning, shell icons and thumbnails, wallpaper, desktop icons
 apps/prism/             Prism (TypeScript)
   src/main/             main process: windows & tabs, profiles/privacy, ad blocking, downloads, history,
                         bookmarks, permissions, menus, default-browser registration, prism:// pages
@@ -170,6 +195,7 @@ electron/               Crystal Suite: launcher UI, app manager (catalog, downlo
 scripts/build-prism.cjs bundles Prism (esbuild + vite) and snapshots the filter lists
 scripts/dist-prism.cjs  builds the standalone Prism installers
 scripts/build-cut.cjs   bundles Cut (esbuild + vite)
+scripts/build-facet.cjs bundles Facet (esbuild + vite) and compiles FacetHelper.exe
 scripts/pack-apps.cjs   packages apps into release zips and writes catalog.json
 catalog.json            the published app catalog the launcher reads
 ```
@@ -178,4 +204,4 @@ Each layer is a canvas positioned in document space; undo is snapshot-based (str
 
 ## License
 
-MIT — see [LICENSE](LICENSE). PSD reading/writing uses [ag-psd](https://github.com/Agamnentzar/ag-psd) (MIT). Prism's ad blocking uses [@ghostery/adblocker](https://github.com/ghostery/adblocker) (MPL-2.0) — see [apps/prism/THIRD_PARTY_NOTICES.md](apps/prism/THIRD_PARTY_NOTICES.md). Cut reads and writes media with [Mediabunny](https://github.com/Vanilagy/mediabunny) (MPL-2.0) — see [apps/cut/THIRD_PARTY_NOTICES.md](apps/cut/THIRD_PARTY_NOTICES.md). "Photoshop" is a trademark of Adobe, "Chrome" of Google and "Vegas Pro" of MAGIX; Crystal Suite is an independent project and is not affiliated with either.
+MIT — see [LICENSE](LICENSE). PSD reading/writing uses [ag-psd](https://github.com/Agamnentzar/ag-psd) (MIT). Prism's ad blocking uses [@ghostery/adblocker](https://github.com/ghostery/adblocker) (MPL-2.0) — see [apps/prism/THIRD_PARTY_NOTICES.md](apps/prism/THIRD_PARTY_NOTICES.md). Cut reads and writes media with [Mediabunny](https://github.com/Vanilagy/mediabunny) (MPL-2.0) — see [apps/cut/THIRD_PARTY_NOTICES.md](apps/cut/THIRD_PARTY_NOTICES.md). Facet uses no third-party code. "Photoshop" is a trademark of Adobe, "Chrome" of Google, "Vegas Pro" of MAGIX and "iPhone" of Apple; Crystal Suite is an independent project and is not affiliated with any of them.

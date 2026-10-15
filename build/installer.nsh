@@ -8,6 +8,22 @@
     Delete "$SMPROGRAMS\Prism.lnk"
     Delete "$DESKTOP\Cut.lnk"
     Delete "$SMPROGRAMS\Cut.lnk"
+    Delete "$DESKTOP\Facet.lnk"
+    Delete "$SMPROGRAMS\Facet.lnk"
+    ; Facet: starting with Windows, and the Windows desktop icons if Facet hid them
+    DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "CrystalSuite.Facet"
+    DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run" "CrystalSuite.Facet"
+    ${If} ${FileExists} "$APPDATA\Crystal Suite\Facet\icons-hidden"
+      FindFirst $0 $1 "$LOCALAPPDATA\Crystal Suite\Apps\facet\*"
+      ${DoWhile} $1 != ""
+        ${If} ${FileExists} "$LOCALAPPDATA\Crystal Suite\Apps\facet\$1\FacetHelper.exe"
+          ExecWait '"$LOCALAPPDATA\Crystal Suite\Apps\facet\$1\FacetHelper.exe" show-icons'
+        ${EndIf}
+        FindNext $0 $1
+      ${Loop}
+      FindClose $0
+      Delete "$APPDATA\Crystal Suite\Facet\icons-hidden"
+    ${EndIf}
     ; Prism's registration as a web browser (Settings > Default apps)
     DeleteRegValue HKCU "Software\RegisteredApplications" "Prism"
     DeleteRegKey HKCU "Software\Clients\StartMenuInternet\Prism"

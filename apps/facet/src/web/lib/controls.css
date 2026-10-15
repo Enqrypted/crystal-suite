@@ -1,0 +1,63 @@
+/* Form controls shared by the desktop popovers and the Facet window (both dark). */
+.editor { display: flex; flex-direction: column; gap: 14px; }
+.field { display: flex; flex-direction: column; gap: 7px; }
+.fl { font: 600 11.5px "Segoe UI Variable Text", "Segoe UI", sans-serif; color: #a8a8b3; text-transform: uppercase; letter-spacing: .07em; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.seg { display: flex; padding: 3px; gap: 2px; border-radius: 10px; background: rgba(255, 255, 255, .08); }
+.seg button { flex: 1; height: 28px; border: 0; border-radius: 8px; background: none; color: #d4d4da; font: 12.5px "Segoe UI Variable Text", "Segoe UI", sans-serif; }
+.seg button:hover { color: #fff; }
+.seg button.on { background: rgba(255, 255, 255, .2); color: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .25); }
+
+.toggles { display: flex; flex-direction: column; gap: 2px; margin-top: 2px; }
+.toggle { display: flex; align-items: center; justify-content: space-between; height: 34px; padding: 0 2px; border: 0; background: none; color: #ececf1; font: 13px "Segoe UI Variable Text", "Segoe UI", sans-serif; }
+.switch { position: relative; width: 38px; height: 22px; border-radius: 11px; background: rgba(255, 255, 255, .2); transition: background .18s; }
+.switch .knob { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .35); transition: transform .2s cubic-bezier(.3, 1.4, .5, 1); }
+.switch.on { background: #30d158; }
+.switch.on .knob { transform: translateX(16px); }
+
+.slider { display: flex; align-items: center; gap: 12px; }
+.slider .track { position: relative; flex: 1; height: 22px; cursor: pointer; touch-action: none; }
+.slider .track::before { content: ""; position: absolute; left: 0; right: 0; top: 9px; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, .18); }
+.slider .fill { position: absolute; left: 0; top: 9px; height: 4px; border-radius: 2px; background: #0a84ff; }
+.slider .knob { position: absolute; top: 2px; width: 18px; height: 18px; margin-left: -9px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, .4); }
+.slider .val { min-width: 72px; text-align: right; font: 12.5px "Segoe UI Variable Text", "Segoe UI", sans-serif; color: #d4d4da; font-variant-numeric: tabular-nums; }
+
+.stepper { display: flex; align-items: center; height: 32px; border-radius: 10px; background: rgba(255, 255, 255, .08); }
+.stepper button { width: 34px; height: 32px; border: 0; background: none; color: #fff; font: 18px "Segoe UI", sans-serif; border-radius: 10px; }
+.stepper button:hover:not(:disabled) { background: rgba(255, 255, 255, .1); }
+.stepper button:disabled { opacity: .3; }
+.stepper .val { flex: 1; text-align: center; font: 600 13px "Segoe UI Variable Text", "Segoe UI", sans-serif; color: #fff; }
+
+.swatches .row { display: flex; flex-wrap: wrap; gap: 7px; }
+.sw { width: 24px; height: 24px; padding: 0; border-radius: 50%; border: 0; background: var(--c); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .25); position: relative; }
+.sw.on { box-shadow: 0 0 0 2px #1d1d22, 0 0 0 4px #fff; }
+.sw.none { background: linear-gradient(135deg, transparent 45%, #ff453a 45%, #ff453a 55%, transparent 55%), rgba(255, 255, 255, .12); }
+.sw.custom { background: conic-gradient(#ff453a, #ffd60a, #30d158, #40c8e0, #0a84ff, #bf5af2, #ff375f, #ff453a); }
+.sw.custom::after { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: var(--c, transparent); }
+.picker { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.picker .sv { position: relative; height: 120px; border-radius: 10px; cursor: crosshair; touch-action: none; }
+.picker .hue { position: relative; height: 14px; border-radius: 7px; cursor: pointer; touch-action: none; background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00); }
+.sv-dot, .hue-dot { position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; box-shadow: 0 0 0 2px #fff, 0 1px 4px rgba(0, 0, 0, .5); pointer-events: none; }
+.hue-dot { top: 7px; background: transparent; }
+
+.faces { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.face-opt { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 4px 6px; border: 0; border-radius: 12px; background: rgba(255, 255, 255, .07); color: #ececf1; font: 11.5px "Segoe UI Variable Text", "Segoe UI", sans-serif; }
+.face-opt svg { width: 100%; height: 34px; }
+.face-opt:hover { background: rgba(255, 255, 255, .12); }
+.face-opt.on { background: rgba(10, 132, 255, .3); box-shadow: inset 0 0 0 1.5px #0a84ff; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { height: 30px; padding: 0 12px; border: 0; border-radius: 15px; background: rgba(255, 255, 255, .08); color: #ececf1; font-size: 14px; }
+.chip:hover { background: rgba(255, 255, 255, .14); }
+.chip.on { background: #fff; color: #111; }
+
+input.text { height: 34px; box-sizing: border-box; padding: 0 12px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, .14); background: rgba(0, 0, 0, .25); color: #fff; font: 13.5px "Segoe UI Variable Text", "Segoe UI", sans-serif; outline: none; }
+input.text:focus { border-color: #0a84ff; box-shadow: 0 0 0 3px rgba(10, 132, 255, .25); }
+
+.btn { height: 32px; padding: 0 16px; border: 0; border-radius: 16px; background: rgba(255, 255, 255, .12); color: #fff; font: 13px "Segoe UI Variable Text", "Segoe UI", sans-serif; }
+.btn:hover:not(:disabled) { background: rgba(255, 255, 255, .2); }
+.btn:disabled { opacity: .4; }
+.btn.primary { background: #0a84ff; }
+.btn.primary:hover:not(:disabled) { background: #2b95ff; }
+.btn.danger { background: #ff453a; }
+.btn.danger:hover { background: #ff5e55; }
