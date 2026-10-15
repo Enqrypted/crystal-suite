@@ -1,9 +1,10 @@
-// Frosted glass without a live backdrop blur: the desktop layer redraws the wallpaper the way Windows
-// shows it on this display (fill, fit, stretch, center, tile or span), blurs it once at low resolution and
-// uses it as the background of every glass surface, lined up with the screen. Cheap and identical to a
-// real blur of the wallpaper underneath.
+// What's behind the glass. The desktop layer redraws the wallpaper the way Windows shows it on this
+// display (fill, fit, stretch, center, tile or span) twice: heavily blurred at low resolution for the
+// backdrop behind an open folder (--wall), and lightly blurred at half resolution for the liquid glass
+// surfaces to refract (lib/liquid.ts).
 import type { Wall } from '../../shared/types';
 import { api } from './api';
+import { setSource } from './liquid';
 
 const SCALE = 0.25; // the blurred copy is a quarter of the screen resolution
 let current = '';
@@ -23,6 +24,7 @@ export async function applyWall(wall: Wall | null) {
   }
   if (key !== current) return; // a newer wallpaper arrived meanwhile
   const blob = await render(wall, img);
+  setSource(lensSource(wall, img), LENS);
   img?.close();
   if (key !== current) return;
   const url = URL.createObjectURL(blob);
@@ -59,6 +61,36 @@ async function render(wall: Wall, img: ImageBitmap | null): Promise<Blob> {
   return out.convertToBlob({ type: 'image/jpeg', quality: 0.92 });
 }
 
+const LENS = 0.5; // lens source pixels per CSS pixel
+
+/** The work area's wallpaper, lightly blurred and a little more saturated, for the glass to refract. */
+function lensSource(wall: Wall, img: ImageBitmap | null): ImageData {
+  const w = Math.max(8, Math.round(innerWidth * LENS));
+  const h = Math.max(8, Math.round(innerHeight * LENS));
+  const scale = w / wall.work.w; // lens pixels per physical pixel
+  const pad = 12;
+  const src = new OffscreenCanvas(w + pad * 2, h + pad * 2);
+  const x = src.getContext('2d')!;
+  x.fillStyle = wall.bg || '#000';
+  x.fillRect(0, 0, src.width, src.height);
+  if (img) {
+    x.imageSmoothingQuality = 'high';
+    x.setTransform(scale, 0, 0, scale, pad - wall.work.x * scale, pad - wall.work.y * scale);
+    paint(x, img, wall);
+    x.setTransform(1, 0, 0, 1, 0, 0);
+    const inner = x.getImageData(pad, pad, w, h);
+    const tmp = new OffscreenCanvas(w, h);
+    tmp.getContext('2d')!.putImageData(inner, 0, 0);
+    x.drawImage(tmp, 0, 0, src.width, src.height);
+    x.drawImage(tmp, pad, pad);
+  }
+  const out = new OffscreenCanvas(w, h);
+  const o = out.getContext('2d', { willReadFrequently: true })!;
+  o.filter = 'blur(2.5px) saturate(1.3)';
+  o.drawImage(src, -pad, -pad);
+  return o.getImageData(0, 0, w, h);
+}
+
 /** Draws the wallpaper in monitor coordinates (physical pixels), like Windows does. */
 function paint(x: OffscreenCanvasRenderingContext2D, img: ImageBitmap, wall: Wall) {
   const mw = wall.monitor.w, mh = wall.monitor.h, iw = img.width, ih = img.height;
@@ -90,7 +122,7 @@ function paint(x: OffscreenCanvasRenderingContext2D, img: ImageBitmap, wall: Wal
   }
 }
 
-/** Lines a glass element's background up with the screen (call after it moves). */
+/** Lines a frosted (fallback) glass element's background up with the screen (call after it moves). */
 export function alignGlass(el: HTMLElement) {
   let x = 0, y = 0;
   for (let e: HTMLElement | null = el; e; e = e.offsetParent as HTMLElement | null) { x += e.offsetLeft; y += e.offsetTop; }

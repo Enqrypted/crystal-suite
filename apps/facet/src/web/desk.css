@@ -13,8 +13,10 @@ img { -webkit-user-drag: none; }
 #layer, #overlays { position: fixed; inset: 0; pointer-events: none; }
 #layer > *, #overlays > * { pointer-events: auto; }
 
-/* frosted glass: the blurred wallpaper, lined up with the screen (see lib/glass.ts) */
+/* glass: frosted (the blurred wallpaper lined up with the screen, lib/glass.ts) until the liquid glass
+   canvas is painted (lib/liquid.ts) */
 .glass {
+  isolation: isolate;
   background-color: rgba(110, 110, 120, .45);
   background-image: linear-gradient(var(--tint, var(--glass-tint)), var(--tint, var(--glass-tint))), var(--wall);
   background-size: auto, 100vw 100vh;
@@ -22,6 +24,16 @@ img { -webkit-user-drag: none; }
   background-repeat: no-repeat;
   box-shadow: inset 0 0 0 1px var(--glass-edge), 0 12px 32px -10px rgba(0, 0, 0, .38);
 }
+
+.lg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; border-radius: inherit; }
+.glass.liquid { background: none; box-shadow: 0 16px 36px -16px rgba(0, 0, 0, .5), 0 3px 8px -3px rgba(0, 0, 0, .2); }
+
+/* a soft light that follows the pointer over glass */
+.folder .tile::after, .folder .panel::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity .35s;
+  background: radial-gradient(140% 90% at var(--mx, 30%) var(--my, 0%), rgba(255, 255, 255, .24), rgba(255, 255, 255, 0) 55%);
+}
+.folder .tile:hover::after, .folder .panel:hover::after { opacity: 1; }
 
 .widget { position: absolute; }
 .widget.moving { z-index: 10; filter: drop-shadow(0 18px 28px rgba(0, 0, 0, .35)); }
@@ -32,10 +44,10 @@ img { -webkit-user-drag: none; }
 .folder.tile { width: calc(var(--tile) + 34px); display: flex; flex-direction: column; align-items: center; gap: 7px; }
 .folder.tile .tile {
   width: var(--tile); height: var(--tile); box-sizing: border-box; border-radius: calc(var(--tile) * .235);
-  padding: calc(var(--tile) * .13); transition: transform .2s cubic-bezier(.3, 1.4, .5, 1), filter .2s;
+  position: relative; padding: calc(var(--tile) * .13); transition: transform .5s cubic-bezier(.22, 1.7, .36, 1);
 }
-.folder.tile:hover .tile { filter: brightness(1.08) saturate(1.05); }
-.folder.tile:active .tile { transform: scale(.93); }
+.folder.tile:hover .tile { transform: scale(1.04); }
+.folder.tile:active .tile { transform: scale(.9); transition-duration: .12s; }
 .folder.tile.opened .tile, .folder.tile.opened .label { opacity: 0; }
 .mini { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: calc(var(--tile) * .06); width: 100%; height: 100%; }
 .mi-img { border-radius: 24%; overflow: hidden; display: grid; place-items: center; min-width: 0; min-height: 0; }
@@ -55,7 +67,7 @@ img { -webkit-user-drag: none; }
 .folder.drop-hover .tile { transform: scale(1.08); }
 
 /* ---------- folder: always-open panel ---------- */
-.folder.panel .panel { border-radius: 26px; padding: 8px 10px 12px; }
+.folder.panel .panel { position: relative; border-radius: 28px; padding: 8px 10px 12px; }
 .ph { height: 30px; display: flex; align-items: center; padding: 0 8px 2px; }
 .pname { color: #fff; font: 600 14px var(--display); text-shadow: 0 1px 3px rgba(0, 0, 0, .35); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
@@ -99,7 +111,7 @@ img { -webkit-user-drag: none; }
 .fo.in .fo-bg { opacity: 1; }
 .fo-sheet {
   position: absolute; display: flex; flex-direction: column; align-items: center; gap: 18px;
-  transition: transform .38s cubic-bezier(.18, .9, .22, 1), opacity .24s ease;
+  transition: transform .52s cubic-bezier(.2, 1.18, .3, 1), opacity .22s ease;
 }
 .fo-title {
   width: 440px; max-width: 80vw; box-sizing: border-box; padding: 3px 12px; border: 0; border-radius: 12px; outline: none;
@@ -108,12 +120,12 @@ img { -webkit-user-drag: none; }
 }
 .fo-title:hover { background: rgba(255, 255, 255, .1); }
 .fo-title:focus { background: rgba(255, 255, 255, .18); }
-.fo-panel { --icon: 64px; --rows: 4; border-radius: 40px; padding: 22px 20px; }
+.fo-panel { position: relative; --icon: 64px; --rows: 4; border-radius: 44px; padding: 24px 22px; }
 .fo-panel .grid { grid-template-columns: repeat(var(--cols), 108px); grid-auto-rows: 104px; }
 .fo-panel .cell .name { font-size: 12.5px; }
 
 /* ---------- clock ---------- */
-.clock { color: var(--clock-color); font-family: var(--clock-font); font-weight: var(--clock-weight); font-variant-numeric: tabular-nums; line-height: 1; }
+.clock { position: relative; color: var(--clock-color); font-family: var(--clock-font); font-weight: var(--clock-weight); font-variant-numeric: tabular-nums; line-height: 1; }
 .clock.shadow { text-shadow: 0 2px 22px rgba(0, 0, 0, .28), 0 1px 3px rgba(0, 0, 0, .22); }
 .clock.bg-glass, .clock.bg-dark { border-radius: calc(30px * var(--s)); padding: calc(20px * var(--s)) calc(26px * var(--s)); }
 .clock.bg-dark { --tint: rgba(14, 14, 18, .58); --glass-edge: rgba(255, 255, 255, .12); }
@@ -159,6 +171,7 @@ img { -webkit-user-drag: none; }
   box-shadow: inset 0 0 0 1px var(--glass-edge), 0 18px 48px -12px rgba(0, 0, 0, .6);
 }
 .menu.in, .popover.in { opacity: 1; transform: none; }
+.menu.liquid, .popover.liquid { box-shadow: 0 22px 54px -16px rgba(0, 0, 0, .6), 0 4px 12px -4px rgba(0, 0, 0, .25); }
 .mi { display: flex; align-items: center; gap: 10px; width: 100%; height: 32px; padding: 0 10px; border: 0; border-radius: 8px; background: none; color: #f2f2f5; font: 13px var(--ui); text-align: left; }
 .mi:hover:not(:disabled) { background: rgba(255, 255, 255, .12); }
 .mi:disabled { opacity: .4; }

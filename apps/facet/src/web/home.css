@@ -64,6 +64,8 @@ body.home ::selection { background: rgba(10, 132, 255, .45); }
 .clock-layout .card .editor > .toggles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); column-gap: 24px; }
 .stage .clock.glass { background-image: linear-gradient(var(--tint, rgba(255, 255, 255, .2)), var(--tint, rgba(255, 255, 255, .2))); background-color: rgba(255, 255, 255, .06); backdrop-filter: blur(24px) saturate(1.4); }
 .stage .clock.bg-dark.glass { background-image: linear-gradient(rgba(14, 14, 18, .55), rgba(14, 14, 18, .55)); }
+.stage .clock.glass.liquid { background: none; backdrop-filter: none; }
+.stage { background-size: 100% 100%; }
 
 /* folder */
 .folder-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; align-items: start; }

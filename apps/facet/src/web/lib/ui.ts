@@ -3,6 +3,7 @@ import type { IconInfo } from '../../shared/types';
 import { api } from './api';
 import { h, clamp } from './dom';
 import { alignGlass } from './glass';
+import { glass } from './liquid';
 
 export const ICONS = {
   open: '<svg viewBox="0 0 16 16"><path d="M2.5 4.5h4l1.5 1.5h5.5v6.5h-11z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>',
@@ -47,6 +48,7 @@ export function menu(items: MenuItem[], x: number, y: number) {
   el.style.left = `${clamp(x, 6, innerWidth - r.width - 6)}px`;
   el.style.top = `${clamp(y, 6, innerHeight - r.height - 6)}px`;
   alignGlass(el);
+  glass(el, { dark: true, tintAlpha: 0.6 });
   requestAnimationFrame(() => el.classList.add('in'));
   holdModal();
   const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
@@ -86,6 +88,7 @@ export function popover(anchor: DOMRect, title: string, body: HTMLElement, onClo
     el.style.left = `${x}px`;
     el.style.top = `${y}px`;
     alignGlass(el);
+    glass(el, { dark: true, tintAlpha: 0.66 });
   };
   place();
   new ResizeObserver(place).observe(el);

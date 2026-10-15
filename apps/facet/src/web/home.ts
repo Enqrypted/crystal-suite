@@ -6,6 +6,7 @@ import { ClockView, FACES } from './lib/clock';
 import { clockEditor, folderEditor } from './lib/editors';
 import { toggle, segmented } from './lib/controls';
 import { ICONS, itemImage } from './lib/ui';
+import { glass, unglass, setSource } from './lib/liquid';
 
 let state: State;
 let selected = 'settings';
@@ -68,6 +69,7 @@ function renderDetail(force = false) {
   preview = null;
   stageObserver?.disconnect();
   stageObserver = null;
+  stageKey = '';
   clear(detailEl);
   if (!w) { renderSettings(); return; }
   if (w.type === 'clock') renderClock(structuredClone(w));
@@ -93,6 +95,7 @@ function renderClock(w: ClockWidget) {
   const stage = h('div', { class: 'stage' }, inner);
   // the preview shows the clock at its real size, scaled down only when it doesn't fit
   const fit = () => {
+    paintStage(stage);
     inner.style.transform = '';
     const k = Math.min(1, (stage.clientWidth - 40) / Math.max(1, inner.offsetWidth), (stage.clientHeight - 40) / Math.max(1, inner.offsetHeight));
     inner.style.transform = k < 1 ? `scale(${k})` : '';
@@ -100,8 +103,13 @@ function renderClock(w: ClockWidget) {
   stageObserver = new ResizeObserver(fit);
   stageObserver.observe(stage);
   stageObserver.observe(preview.el);
-  const editor = clockEditor(w, () => { preview!.set({ ...w }); preview!.el.classList.toggle('glass', w.bg !== 'none'); api.put(w); });
-  preview.el.classList.toggle('glass', w.bg !== 'none');
+  const surface = () => {
+    preview!.el.classList.toggle('glass', w.bg !== 'none');
+    if (w.bg === 'none') unglass(preview!.el);
+    else glass(preview!.el, { dark: w.bg === 'dark' });
+  };
+  const editor = clockEditor(w, () => { preview!.set({ ...w }); surface(); api.put(w); });
+  surface();
   detailEl.append(
     head('Clock', 'Changes show on your desktop as you make them.', [removeButton(w)]),
     h('div', { class: 'clock-layout' }, stage, h('div', { class: 'card' }, editor)),
@@ -184,6 +192,38 @@ function refreshItems(w: FolderWidget) {
     launch.addEventListener('click', () => api.open(it.path));
     itemsEl.append(h('div', { class: 'item' }, launch, h('div', { class: 'item-text' }, name, h('div', { class: 'item-path', text: it.path })), reveal, del));
   }
+}
+
+/** The preview's backdrop: a painted "wallpaper" that the liquid glass refracts like the real one. */
+let stageKey = '';
+function paintStage(stage: HTMLElement) {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  let x = 0, y = 0;
+  for (let e: HTMLElement | null = stage; e; e = e.offsetParent as HTMLElement | null) { x += e.offsetLeft; y += e.offsetTop; }
+  const key = `${w},${h},${x},${y}`;
+  if (!w || !h || key === stageKey) return;
+  stageKey = key;
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const g = c.getContext('2d', { willReadFrequently: true })!;
+  const base = g.createLinearGradient(0, 0, w, h);
+  base.addColorStop(0, '#1f3b8f'); base.addColorStop(1, '#2b145a');
+  g.fillStyle = base; g.fillRect(0, 0, w, h);
+  const blob = (cx: number, cy: number, rad: number, color: string) => {
+    const r = g.createRadialGradient(cx, cy, 0, cx, cy, rad);
+    r.addColorStop(0, color); r.addColorStop(1, color.slice(0, 7) + '00');
+    g.fillStyle = r; g.fillRect(0, 0, w, h);
+  };
+  blob(w * 0.2, h * 0.1, Math.max(w, h) * 0.55, '#7a5cff');
+  blob(w * 0.9, h * 0.95, Math.max(w, h) * 0.45, '#ff7a59');
+  blob(w * 0.55, h * 0.55, Math.max(w, h) * 0.18, '#4fd1ff99');
+  // a few soft bands so the refraction at the glass edge shows
+  g.globalAlpha = 0.18;
+  g.fillStyle = '#ffffff';
+  for (let i = 0; i < 5; i++) { g.save(); g.translate(w * (0.15 + i * 0.18), h / 2); g.rotate(0.5); g.fillRect(-3, -h, 6, h * 2); g.restore(); }
+  g.globalAlpha = 1;
+  stage.style.backgroundImage = `url(${c.toDataURL('image/jpeg', 0.92)})`;
+  setSource(g.getImageData(0, 0, w, h), 1, x, y);
 }
 
 function renderSettings() {

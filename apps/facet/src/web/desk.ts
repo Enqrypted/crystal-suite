@@ -7,6 +7,7 @@ import { applyWall, alignGlass } from './lib/glass';
 import { ClockView } from './lib/clock';
 import { clockEditor, folderEditor } from './lib/editors';
 import { closeOverlays, ICONS, itemImage, menu, modal, popover, type MenuItem } from './lib/ui';
+import { glass, unglass, refreshWithin } from './lib/liquid';
 
 const displayId = new URLSearchParams(location.search).get('display') || '';
 const layer = document.getElementById('layer')!;
@@ -55,6 +56,7 @@ abstract class View {
     el.style.left = `${x}px`;
     el.style.top = `${y}px`;
     this.el.querySelectorAll<HTMLElement>('.glass').forEach(alignGlass);
+    refreshWithin(this.el);
   }
   destroy() { this.el.remove(); }
   abstract menu(): MenuItem[];
@@ -120,8 +122,11 @@ class ClockWidgetView extends View {
   }
   update(w: Widget) {
     this.w = w;
-    this.clock.set(w as ClockWidget);
-    this.clock.el.classList.toggle('glass', (w as ClockWidget).bg !== 'none');
+    const c = w as ClockWidget;
+    this.clock.set(c);
+    this.clock.el.classList.toggle('glass', c.bg !== 'none');
+    if (c.bg === 'none') unglass(this.clock.el);
+    else glass(this.clock.el, { dark: c.bg === 'dark' });
     this.place();
     reportRects();
   }
@@ -163,6 +168,8 @@ class FolderView extends View {
       if (f.style === 'tile') this.buildTile(f);
       else this.buildPanel(f);
     }
+    const surface = this.el.querySelector<HTMLElement>(':scope > .tile, :scope > .panel');
+    if (surface) glass(surface, glassOpts(f));
     this.place();
     reportRects();
   }
@@ -175,7 +182,9 @@ class FolderView extends View {
     }
     this.grid = null;
     this.el.style.setProperty('--tile', `${size}px`);
-    this.el.append(h('div', { class: 'tile glass' }, mini), h('div', { class: 'label', text: f.name }));
+    const tile = h('div', { class: 'tile glass' }, mini);
+    this.el.append(tile, h('div', { class: 'label', text: f.name }));
+    sheen(tile);
   }
   private buildPanel(f: FolderWidget) {
     const icon = ICON[f.size];
@@ -183,7 +192,9 @@ class FolderView extends View {
     this.el.style.setProperty('--cols', String(f.cols));
     this.el.style.setProperty('--rows', String(f.rows));
     this.grid = new ItemGrid(f, { addTile: false });
-    this.el.append(h('div', { class: 'panel glass' }, h('div', { class: 'ph' }, h('span', { class: 'pname', text: f.name })), this.grid.el));
+    const panel = h('div', { class: 'panel glass' }, h('div', { class: 'ph' }, h('span', { class: 'pname', text: f.name })), this.grid.el);
+    this.el.append(panel);
+    sheen(panel);
   }
   click() { if (this.f.style === 'tile') openFolder(this); }
   menu(): MenuItem[] {
@@ -200,6 +211,18 @@ class FolderView extends View {
       ...commonMenu(),
     ];
   }
+}
+
+/** Folder glass: clear or dark (Settings), optionally tinted. */
+const glassOpts = (f: FolderWidget) => ({ tint: f.tint || undefined, dark: state.settings.glass === 'dark' || undefined });
+
+/** A soft highlight that follows the pointer across a glass surface. */
+function sheen(el: HTMLElement) {
+  el.addEventListener('pointermove', (e) => {
+    const r = el.getBoundingClientRect();
+    el.style.setProperty('--mx', `${((e.clientX - r.left) / r.width) * 100}%`);
+    el.style.setProperty('--my', `${((e.clientY - r.top) / r.height) * 100}%`);
+  });
 }
 
 function hexA(hex: string, a: number) {
@@ -430,6 +453,7 @@ function openFolder(view: FolderView) {
   sheet.style.left = `${cx - r.width / 2}px`;
   sheet.style.top = `${cy - r.height / 2}px`;
   alignGlass(panel);
+  glass(panel, { ...glassOpts(f), tintAlpha: f.tint ? 0.3 : state.settings.glass === 'dark' ? 0.42 : 0.12 });
   // grow out of the tile
   const p = panel.getBoundingClientRect();
   const k = from.width / p.width;
