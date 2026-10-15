@@ -30,13 +30,13 @@
     {
       "id": "cut",
       "name": "Cut",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "description": "Video editing",
-      "url": "https://github.com/Enqrypted/crystal-suite/releases/download/cut-v0.1.0/cut-0.1.0.zip",
-      "size": 219236,
-      "sha256": "7a8f6114b5aede77af2cffe778896ea8dcb3713182bd109ec1ab1599e9c2fdf2",
+      "url": "https://github.com/Enqrypted/crystal-suite/releases/download/cut-v0.1.1/cut-0.1.1.zip",
+      "size": 219668,
+      "sha256": "181a2981ff7eeefe521fe58c597b83afe903f44b2976ebb8ece2a2d26406f293",
       "minLauncher": "0.2.0",
-      "notes": "First release: a Vegas-style video editor with video and audio tracks, split, trim, ripple, fades and crossfades, event volume and opacity, pan/crop, color effects, text titles, markers, snapping, timeline zoom, audio waveforms and thumbnails, and rendering to MP4 (H.264/AAC) or WebM."
+      "notes": "Fixes the video preview freezing during playback while the audio kept going. The preview now sits on top with the timeline below, the project frame is outlined so its aspect ratio is easy to see, and the preview footer shows the project format (click it to change). New: Match media in Project Properties and Match Project Video Settings in the media bin."
     }
   ]
 }
