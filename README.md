@@ -8,9 +8,9 @@ The **Crystal Suite** app is a launcher (like Creative Cloud) that installs, upd
 | --- | --- | --- |
 | **Photon** | ✅ Available (install it from the launcher) | Photoshop |
 | **Prism** | ✅ Available (from the launcher, or as its own Prism.exe) | Chrome, minus the tracking |
+| **Cut** | ✅ Available (install it from the launcher) | Sony Vegas Pro |
 | Vector | Planned | Illustrator |
 | Darkroom | Planned | Lightroom |
-| Cut | Planned | Premiere Pro |
 | Motion | Planned | After Effects |
 | Layout | Planned | InDesign |
 
@@ -18,7 +18,7 @@ The **Crystal Suite** app is a launcher (like Creative Cloud) that installs, upd
 
 Get **`CrystalSuite-Setup-x.y.z.exe`** from the [latest release](https://github.com/Enqrypted/crystal-suite/releases/latest) (or the portable **`CrystalSuite-Portable-x.y.z.exe`**, no installation needed).
 
-Crystal Suite is a launcher, like Creative Cloud: open it, click **Install** next to an app and it downloads (Photon is about 270 KB and Prism about 3 MB, because the apps share the launcher's runtime), verifies and installs it. From then on:
+Crystal Suite is a launcher, like Creative Cloud: open it, click **Install** next to an app and it downloads (Photon and Cut are about 250 KB, Prism about 3 MB, because the apps share the launcher's runtime), verifies and installs it. From then on:
 
 - **Open** starts the app; each app also gets its own Start-menu (and optional desktop) shortcut and taskbar icon.
 - New versions show up under **Updates** (with a count in the sidebar). They install in the background automatically unless you turn that off in **Settings**; an app that is open keeps running and switches to the new version the next time you start it.
@@ -38,6 +38,7 @@ npm install
 npm run app        # the Crystal Suite launcher (installs Photon from the published catalog)
 npm run photon     # builds Photon from source and opens it directly
 npm run prism      # builds Prism from source and opens it as a standalone app
+npm run cut        # builds Cut from source and opens it
 npm run dev        # Photon in your browser with hot reload: http://localhost:5173
 ```
 
@@ -61,6 +62,11 @@ npm run pack:apps                     # builds Photon, writes release/apps/photo
 gh release create photon-v<v> release/apps/photon-<v>.zip --title "Photon <v>" --latest=false
 git commit -am "Photon <v>" && git push   # launchers see the new version once catalog.json is pushed
 
+# A new Cut version: bump "version" in apps/cut/app.json, then
+npm run pack:apps
+gh release create cut-v<v> release/apps/cut-<v>.zip --title "Cut <v>" --latest=false
+git commit -am "Cut <v>" && git push
+
 # A new Prism version: bump "version" in apps/prism/app.json, then
 npm run pack:apps && npm run dist:prism  # the launcher package + the standalone Prism-Setup/Portable exes
 gh release create prism-v<v> release/apps/prism-<v>.zip release/prism/Prism-Setup-<v>.exe release/prism/Prism-Portable-<v>.exe --title "Prism <v>" --latest=false
@@ -80,6 +86,18 @@ If `npm run dist` fails with *"Cannot create symbolic link: A required privilege
 cd %LOCALAPPDATA%\electron-builder\Cache\winCodeSign
 <path-to-this-repo>\node_modules\7zip-bin\win\x64\7za.exe x <the-downloaded-file>.7z -owinCodeSign-2.6.0 -xr!darwin
 ```
+
+## Cut features
+
+A video editor laid out like Sony Vegas Pro: the timeline with track headers on top, and Project Media, Properties, Generators & Transitions, the Video Preview and the Master bus docked below. Dark, clean, and it all runs locally.
+
+- **Timeline** — video and audio tracks (video files land as a grouped video + audio pair), drag events between tracks, Ctrl+drag to copy, trim either edge, **S** to split at the cursor, ripple editing (Ctrl+L), snapping to edges, the cursor, markers and the time selection (F8), quantize to frames, zoom with the arrow keys / Ctrl+wheel / slider / `` ` `` to fit, thumbnails on video events and waveforms on audio events, markers (M), time selection & loop playback (Q, I, O).
+- **Vegas-style handles** — drag an event's top corners for fade in/out (smooth, linear, fast or slow curves) and its top edge for volume (audio) or opacity (video); overlap two events on a track for an automatic crossfade.
+- **Audio** — event volume and pan, track volume/pan, mute & solo, normalize, master fader with peak meters; sample-accurate mixing.
+- **Video** — event opacity, transitions (crossfade, dip to black, wipe, slide, push), Pan/Crop (position, zoom, rotation, crop, with an animated "Ken Burns" end state), Video FX (brightness, contrast, saturation, hue, blur, black & white, sepia, invert, presets), playback rate, track level, compositing of multiple video tracks.
+- **Media generators** — text, titles, lower thirds, solid colours and gradients.
+- **Render As** — MP4 (H.264 + AAC) or WebM (VP9 + Opus), project or preset resolution (up to 4K), frame rate, quality, audio bitrate, whole project or time selection, size estimate, live preview and progress; uses the computer's hardware encoder when available.
+- **Projects** — .cutproj files (media found again if the folder moves), relink offline media, undo/redo of every edit, autosave and crash recovery; imports MP4, MOV, MKV, WebM, MP3, WAV, M4A, OGG, FLAC, PNG, JPEG, WebP, GIF and BMP.
 
 ## Prism features
 
@@ -135,6 +153,11 @@ apps/photon/            Photon (TypeScript, no UI framework)
   src/panels/           Layers, Properties, Color, History, Channels, Paths, …
   src/dialogs/          dialogs: adjustments, filters, Liquify, Camera Raw, Layer Style, color picker, …
 apps/photon/app.json    Photon manifest (version, window, file types), packaged with the app
+apps/cut/               Cut (TypeScript)
+  src/main/             main process: windows, dialogs, ranged file reads and render writes
+  src/web/core/         project model, undo, media library (Mediabunny), frame streams, compositor,
+                        audio mixer, transport, editing operations, renderer
+  src/web/ui/           timeline, track headers, preview, media bin, properties, generators, dialogs
 apps/prism/             Prism (TypeScript)
   src/main/             main process: windows & tabs, profiles/privacy, ad blocking, downloads, history,
                         bookmarks, permissions, menus, default-browser registration, prism:// pages
@@ -146,6 +169,7 @@ electron/               Crystal Suite: launcher UI, app manager (catalog, downlo
                         update, shortcuts), zip reader, app windows, native file dialogs
 scripts/build-prism.cjs bundles Prism (esbuild + vite) and snapshots the filter lists
 scripts/dist-prism.cjs  builds the standalone Prism installers
+scripts/build-cut.cjs   bundles Cut (esbuild + vite)
 scripts/pack-apps.cjs   packages apps into release zips and writes catalog.json
 catalog.json            the published app catalog the launcher reads
 ```
@@ -154,4 +178,4 @@ Each layer is a canvas positioned in document space; undo is snapshot-based (str
 
 ## License
 
-MIT — see [LICENSE](LICENSE). PSD reading/writing uses [ag-psd](https://github.com/Agamnentzar/ag-psd) (MIT). Prism's ad blocking uses [@ghostery/adblocker](https://github.com/ghostery/adblocker) (MPL-2.0) — see [apps/prism/THIRD_PARTY_NOTICES.md](apps/prism/THIRD_PARTY_NOTICES.md). "Photoshop" is a trademark of Adobe and "Chrome" a trademark of Google; Crystal Suite is an independent project and is not affiliated with either.
+MIT — see [LICENSE](LICENSE). PSD reading/writing uses [ag-psd](https://github.com/Agamnentzar/ag-psd) (MIT). Prism's ad blocking uses [@ghostery/adblocker](https://github.com/ghostery/adblocker) (MPL-2.0) — see [apps/prism/THIRD_PARTY_NOTICES.md](apps/prism/THIRD_PARTY_NOTICES.md). Cut reads and writes media with [Mediabunny](https://github.com/Vanilagy/mediabunny) (MPL-2.0) — see [apps/cut/THIRD_PARTY_NOTICES.md](apps/cut/THIRD_PARTY_NOTICES.md). "Photoshop" is a trademark of Adobe, "Chrome" of Google and "Vegas Pro" of MAGIX; Crystal Suite is an independent project and is not affiliated with either.

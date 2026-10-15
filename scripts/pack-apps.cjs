@@ -36,6 +36,14 @@ const CONTENTS = {
       { name: 'THIRD_PARTY_NOTICES.md', data: fs.readFileSync(path.join(ROOT, 'apps', 'prism', 'THIRD_PARTY_NOTICES.md')) },
     ];
   },
+  // a module app: main process + preload + the editor UI
+  cut: () => {
+    need(path.join(ROOT, 'dist', 'cut', 'main.cjs'));
+    return [
+      ...tree(path.join(ROOT, 'dist', 'cut')),
+      { name: 'THIRD_PARTY_NOTICES.md', data: fs.readFileSync(path.join(ROOT, 'apps', 'cut', 'THIRD_PARTY_NOTICES.md')) },
+    ];
+  },
 };
 
 function need(file) {

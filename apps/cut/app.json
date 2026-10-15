@@ -1,0 +1,17 @@
+{
+  "id": "cut",
+  "name": "Cut",
+  "version": "0.1.0",
+  "description": "Video editing",
+  "main": "main.cjs",
+  "minLauncher": "0.2.0",
+  "notes": "First release: a Vegas-style video editor with video and audio tracks, split, trim, ripple, fades and crossfades, event volume and opacity, pan/crop, color effects, text titles, markers, snapping, timeline zoom, audio waveforms and thumbnails, and rendering to MP4 (H.264/AAC) or WebM.",
+  "fileTypes": [
+    "cutproj",
+    "mp4",
+    "m4v",
+    "mov",
+    "webm",
+    "mkv"
+  ]
+}

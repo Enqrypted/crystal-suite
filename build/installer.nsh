@@ -6,6 +6,8 @@
     Delete "$SMPROGRAMS\Photon.lnk"
     Delete "$DESKTOP\Prism.lnk"
     Delete "$SMPROGRAMS\Prism.lnk"
+    Delete "$DESKTOP\Cut.lnk"
+    Delete "$SMPROGRAMS\Cut.lnk"
     ; Prism's registration as a web browser (Settings > Default apps)
     DeleteRegValue HKCU "Software\RegisteredApplications" "Prism"
     DeleteRegKey HKCU "Software\Clients\StartMenuInternet\Prism"
