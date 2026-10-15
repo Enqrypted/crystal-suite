@@ -408,8 +408,17 @@ class Facet {
   // ---------- icons ----------
 
   private async icon(p: string): Promise<IconInfo> {
-    let st: fs.Stats;
-    try { st = fs.statSync(p); } catch { return { url: '', kind: 'icon', missing: true }; }
+    // Only "not found" means missing. Windows briefly locks shortcuts while it updates them (for example
+    // right after they're dragged), so a busy file is asked again rather than reported as gone.
+    let st: fs.Stats | null = null;
+    for (let i = 0; i < 5 && !st; i++) {
+      try { st = fs.statSync(p); } catch (e) {
+        const code = (e as NodeJS.ErrnoException).code;
+        if (code === 'ENOENT' || code === 'ENOTDIR') return { url: '', kind: 'icon', missing: true };
+        await new Promise((r) => setTimeout(r, 150 * (i + 1)));
+      }
+    }
+    if (!st) return { url: '', kind: 'icon' };
     const key = crypto.createHash('sha1').update(`${p.toLowerCase()}|${st.mtimeMs}|${st.size}|2`).digest('hex').slice(0, 24);
     for (const kind of ['icon', 'thumb', 'art'] as const) {
       const f = path.join(this.iconDir, `${key}-${kind}.png`);

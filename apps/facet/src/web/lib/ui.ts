@@ -117,22 +117,38 @@ const iconCache = new Map<string, Promise<IconInfo>>();
 export function iconFor(path: string, refresh = false): Promise<IconInfo> {
   let p = refresh ? undefined : iconCache.get(path);
   if (!p) {
-    p = api.icon(path).catch(() => ({ url: '', kind: 'icon' as const }));
-    iconCache.set(path, p);
+    const job = api.icon(path).catch(() => ({ url: '', kind: 'icon' as const }));
+    // only icons are remembered: a missing file or a failed extraction is asked about again next time
+    job.then((info) => { if (!info.url && iconCache.get(path) === job) iconCache.delete(path); });
+    iconCache.set(path, job);
+    p = job;
   }
   return p;
 }
 
+/** Re-checks for an item without an icon (moved back, restored, or busy a moment ago): soon, then less often. */
+const RETRY = [1000, 3000, 10000, 30000];
+
 /** An <img> (or placeholder) for a folder item; fills in when the icon is ready. */
 export function itemImage(path: string, cls = 'img') {
   const box = h('div', { class: `${cls} loading` });
-  iconFor(path).then((info) => {
-    box.classList.remove('loading');
-    if (info.missing) { box.classList.add('missing'); box.innerHTML = ICONS.warn; box.title = 'This item was moved or deleted'; return; }
-    if (!info.url) { box.classList.add('blank'); return; }
-    box.classList.add(`k-${info.kind}`);
-    const img = h('img', { src: info.url, draggable: 'false', alt: '' });
-    box.append(img);
-  });
+  let tries = 0;
+  const show = (info: IconInfo) => {
+    if (tries > 0 && !box.isConnected) return; // the folder was redrawn meanwhile
+    box.classList.remove('loading', 'missing', 'blank');
+    box.replaceChildren();
+    box.removeAttribute('title');
+    if (info.url) {
+      box.classList.add(`k-${info.kind}`);
+      box.append(h('img', { src: info.url, draggable: 'false', alt: '' }));
+      return;
+    }
+    if (info.missing) { box.classList.add('missing'); box.innerHTML = ICONS.warn; box.title = 'This item was moved or deleted'; }
+    else box.classList.add('blank');
+    const wait = RETRY[tries] ?? 60000;
+    tries++;
+    setTimeout(() => { if (box.isConnected) iconFor(path).then(show); }, wait);
+  };
+  iconFor(path).then(show);
   return box;
 }

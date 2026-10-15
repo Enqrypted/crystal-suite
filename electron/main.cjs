@@ -40,7 +40,14 @@ function parseArgs(argv) {
 }
 
 // ---------- launcher ----------
+/** Looks for new apps and updates unless that happened in the last few minutes. Apps like Facet keep
+ *  Crystal Suite running for days, so it can't only check when it starts. */
+function refreshIfStale(maxAge = 10 * 60 * 1000) {
+  if (suite && Date.now() - (suite.catalog.checkedAt || 0) > maxAge) suite.refresh();
+}
+
 function showLauncher() {
+  refreshIfStale();
   if (launcher) {
     if (launcher.isMinimized()) launcher.restore();
     launcher.focus();
@@ -321,6 +328,7 @@ else {
     suite.cleanupAll();
     handleArgs(process.argv, true);
     suite.refresh(); // checks for new apps and updates in the background
+    setInterval(() => refreshIfStale(60 * 60 * 1000), 6 * 60 * 60 * 1000).unref();
   });
   // Finish a running download/update before quitting when the last window closes.
   const quitWhenIdle = () => {
