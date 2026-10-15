@@ -84,7 +84,7 @@ export class FrameStream {
 
 /** Frames for the preview window. `onFrame` asks the preview to redraw when a frame arrives. */
 export class PreviewFrames {
-  private streams = new Map<string, { stream: FrameStream; mediaId: string }>();
+  private streams = new Map<string, { stream: FrameStream; mediaId: string; last: number }>();
   private stills = new Map<string, { sample: VideoSample; t: number; mediaId: string }>();
   private inflight = new Map<string, { want: number }>();
   private sinks = new Map<string, VideoSampleSink>();
@@ -105,10 +105,12 @@ export class PreviewFrames {
     const src = sourceTime(clip, t);
     if (playing) {
       let s = this.streams.get(clip.id);
-      // restart the stream if it belongs to other media or fell far behind / ahead (e.g. after a seek);
-      // a stream that is still warming up (nothing decoded yet) is left alone
+      // Restart the stream when the playhead jumped (seek, loop) or it belongs to other media. A stream
+      // that is merely slow — still decoding up from a distant keyframe, or behind on a busy machine — is
+      // kept: it catches up by skipping frames, while a new one would have to start over from a keyframe.
       const lag = s ? s.stream.lag(src) : null;
-      if (s && (s.mediaId !== clip.mediaId || (lag !== null && (lag > 1 || lag < -0.5)) || (s.stream.ended && !s.stream.current))) {
+      const jumped = s ? src < s.last - 0.05 || src > s.last + 0.75 : false;
+      if (s && (s.mediaId !== clip.mediaId || jumped || (lag !== null && (lag > 8 || lag < -0.5)) || (s.stream.ended && !s.stream.current))) {
         s.stream.close();
         this.streams.delete(clip.id);
         s = undefined;
@@ -116,9 +118,10 @@ export class PreviewFrames {
       if (!s) {
         const sink = media.videoSink(clip.mediaId);
         if (!sink) return null;
-        s = { stream: new FrameStream(sink, Math.max(0, src), 4), mediaId: clip.mediaId };
+        s = { stream: new FrameStream(sink, Math.max(0, src), 4), mediaId: clip.mediaId, last: src };
         this.streams.set(clip.id, s);
       }
+      s.last = src;
       const f = s.stream.peek(src);
       if (f) return f;
       return this.stills.get(clip.id)?.sample ?? null;
@@ -132,7 +135,7 @@ export class PreviewFrames {
     const r = media.get(clip.mediaId);
     if (!r?.video || r.status !== 'ready') return;
     const sink = media.videoSink(clip.mediaId);
-    if (sink) this.streams.set(clip.id, { stream: new FrameStream(sink, clip.offset, 4), mediaId: clip.mediaId });
+    if (sink) this.streams.set(clip.id, { stream: new FrameStream(sink, clip.offset, 4), mediaId: clip.mediaId, last: clip.offset });
   }
 
   private still(clip: Clip, src: number, fps: number): Drawable | null {

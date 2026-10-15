@@ -1,11 +1,11 @@
 {
   "id": "cut",
   "name": "Cut",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Video editing",
   "main": "main.cjs",
   "minLauncher": "0.2.0",
-  "notes": "Fixes the video preview freezing during playback while the audio kept going. The preview now sits on top with the timeline below, the project frame is outlined so its aspect ratio is easy to see, and the preview footer shows the project format (click it to change). New: Match media in Project Properties and Match Project Video Settings in the media bin.",
+  "notes": "Fixes the video preview freezing during playback while the audio kept going, especially with screen recordings (OBS and similar), and keeps playback moving on a busy PC. The preview now sits on top with the timeline below, the project frame is outlined so its aspect ratio is easy to see, and the preview footer shows the project format (click it to change). New: Match media in Project Properties and Match Project Video Settings in the media bin.",
   "fileTypes": [
     "cutproj",
     "mp4",
