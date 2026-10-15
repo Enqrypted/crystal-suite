@@ -37,6 +37,20 @@
       "sha256": "3132c1c219e9d8177b15a5310d1e9471a420d5334f1f35d29c11fe990cdf3671",
       "minLauncher": "0.2.0",
       "notes": "Fixes the video preview freezing during playback while the audio kept going, especially with screen recordings (OBS and similar), and keeps playback moving on a busy PC. The preview now sits on top with the timeline below, the project frame is outlined so its aspect ratio is easy to see, and the preview footer shows the project format (click it to change). New: Match media in Project Properties and Match Project Video Settings in the media bin."
+    },
+    {
+      "id": "facet",
+      "name": "Facet",
+      "version": "0.1.0",
+      "description": "Desktop folders & widgets",
+      "badge": "Fc",
+      "color": "#5ce1c6",
+      "bg": "#00302a",
+      "url": "https://github.com/Enqrypted/crystal-suite/releases/download/facet-v0.1.0/facet-0.1.0.zip",
+      "size": 72454,
+      "sha256": "8b16ceca6b2681e7b90c34902ea436f2f94e41c215fbdeeebcf52cf8ee034306",
+      "minLauncher": "0.2.0",
+      "notes": "First release: iPhone-style folders on your desktop with custom names (drop apps, shortcuts, files and folders in, click to open), always-open panels, a customizable clock (minimal, card, analog or stacked; font, weight, size, colour, date, seconds), frosted glass that matches your wallpaper, Organize Desktop to sort your desktop into folders in one go, and an option to hide the Windows desktop icons."
     }
   ]
 }
