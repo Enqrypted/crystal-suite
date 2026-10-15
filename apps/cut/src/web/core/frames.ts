@@ -64,8 +64,12 @@ export class FrameStream {
     }
   }
 
-  /** How far behind the requested time the stream is (seconds). */
-  lag(t: number) { return this.current ? t - this.current.timestamp : this.queue.length ? t - this.queue[0].timestamp : Infinity; }
+  /** How far behind the requested time the stream is (seconds); null while nothing is decoded yet. */
+  lag(t: number): number | null {
+    if (this.current) return t - this.current.timestamp;
+    if (this.queue.length) return t - this.queue[0].timestamp;
+    return null;
+  }
 
   close() {
     this.closed = true;
@@ -101,8 +105,14 @@ export class PreviewFrames {
     const src = sourceTime(clip, t);
     if (playing) {
       let s = this.streams.get(clip.id);
-      // (re)start the stream when there is none, it belongs to other media, or it fell far behind / ahead
-      if (s && (s.mediaId !== clip.mediaId || s.stream.lag(src) > 0.75 || s.stream.lag(src) < -0.5)) { s.stream.close(); this.streams.delete(clip.id); s = undefined; }
+      // restart the stream if it belongs to other media or fell far behind / ahead (e.g. after a seek);
+      // a stream that is still warming up (nothing decoded yet) is left alone
+      const lag = s ? s.stream.lag(src) : null;
+      if (s && (s.mediaId !== clip.mediaId || (lag !== null && (lag > 1 || lag < -0.5)) || (s.stream.ended && !s.stream.current))) {
+        s.stream.close();
+        this.streams.delete(clip.id);
+        s = undefined;
+      }
       if (!s) {
         const sink = media.videoSink(clip.mediaId);
         if (!sink) return null;

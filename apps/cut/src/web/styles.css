@@ -65,7 +65,8 @@ input, textarea, select { user-select: text; }
 .toolbar .spacer { flex: 1; }
 
 /* ---------- main area ---------- */
-.main { display: grid; grid-template-rows: minmax(160px, 1fr) 36px 5px var(--dock-h, 40%); min-height: 0; }
+/* preview and panels on top, the timeline below */
+.main { display: grid; grid-template-rows: var(--top-h, 48%) 5px 36px minmax(150px, 1fr); min-height: 0; }
 .timeline-pane { display: grid; grid-template-columns: var(--hdr-w, 252px) 1fr; min-height: 0; background: var(--panel); }
 .tl-left { display: grid; grid-template-rows: 46px 1fr; min-height: 0; border-right: 1px solid var(--line); background: var(--panel-2); }
 .time-display { display: flex; align-items: center; justify-content: center; font: 600 21px/1 "Cascadia Mono", Consolas, monospace; letter-spacing: .5px; color: #d7d7ff; background: #111114; border-bottom: 1px solid var(--line); cursor: text; }
@@ -185,8 +186,10 @@ input[type=checkbox] { accent-color: var(--accent); }
 
 /* preview */
 .preview { display: grid; grid-template-rows: 32px 1fr 26px; min-width: 0; min-height: 0; background: var(--panel); border: 1px solid var(--line); }
-.preview .stage { position: relative; background: #0b0b0d; display: grid; place-items: center; overflow: hidden; min-height: 0; }
-.preview canvas { display: block; background: #000; box-shadow: 0 0 0 1px #000; }
+.preview .stage { position: relative; background: #1b1b20; display: grid; place-items: center; overflow: hidden; min-height: 0; }
+.preview canvas { display: block; background: #000; box-shadow: 0 0 0 1px rgba(255, 255, 255, .14), 0 6px 22px rgba(0, 0, 0, .55); }
+.preview .foot .fmt { color: var(--dim); cursor: pointer; border-radius: 4px; padding: 1px 6px; }
+.preview .foot .fmt:hover { background: var(--panel-3); color: var(--text); }
 .preview .foot { display: flex; align-items: center; gap: 12px; padding: 0 10px; color: var(--dim); background: var(--panel-2); border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; }
 .preview .foot .tc { color: var(--text); font-family: "Cascadia Mono", Consolas, monospace; }
 

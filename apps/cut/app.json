@@ -1,11 +1,11 @@
 {
   "id": "cut",
   "name": "Cut",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Video editing",
   "main": "main.cjs",
   "minLauncher": "0.2.0",
-  "notes": "First release: a Vegas-style video editor with video and audio tracks, split, trim, ripple, fades and crossfades, event volume and opacity, pan/crop, color effects, text titles, markers, snapping, timeline zoom, audio waveforms and thumbnails, and rendering to MP4 (H.264/AAC) or WebM.",
+  "notes": "Fixes the video preview freezing during playback while the audio kept going. The preview now sits on top with the timeline below, the project frame is outlined so its aspect ratio is easy to see, and the preview footer shows the project format (click it to change). New: Match media in Project Properties and Match Project Video Settings in the media bin.",
   "fileTypes": [
     "cutproj",
     "mp4",

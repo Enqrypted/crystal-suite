@@ -324,11 +324,12 @@ for (const t of tabDefs) {
 }
 showTab(activeTab);
 timeline.onOpenProperties = () => showTab('props');
+preview.onFormatClick = () => dialogs.projectProperties();
 const leftPanel = h('div', { class: 'panel' }, tabBar, tabBody);
 const splitV = h('div', { class: 'splitter-v' });
 const dock = h('div', { class: 'dock' }, leftPanel, splitV, preview.el, master.el);
 const splitH = h('div', { class: 'splitter-h' });
-const main = h('div', { class: 'main' }, timelinePane, transportBar, splitH, dock);
+const main = h('div', { class: 'main' }, dock, splitH, transportBar, timelinePane);
 
 const statusMsg = h('span', { class: 'msg' }, 'Ready');
 const statusAudio = h('span');
@@ -344,8 +345,8 @@ function status(text: string) {
 }
 
 // splitters (sizes remembered)
-const savedDock = Number(localStorage.getItem('cut.dockH')) || 0;
-if (savedDock) main.style.setProperty('--dock-h', `${savedDock}px`);
+const savedTop = Number(localStorage.getItem('cut.topH')) || 0;
+if (savedTop) main.style.setProperty('--top-h', `${savedTop}px`);
 const savedLeft = Number(localStorage.getItem('cut.dockLeft')) || 0;
 if (savedLeft) dock.style.setProperty('--dock-left', `${savedLeft}px`);
 splitH.addEventListener('pointerdown', (e) => {
@@ -353,9 +354,9 @@ splitH.addEventListener('pointerdown', (e) => {
   const sy = e.clientY;
   splitH.setPointerCapture(e.pointerId);
   const move = (ev: PointerEvent) => {
-    const hgt = clamp(start - (ev.clientY - sy), 160, main.clientHeight - 240);
-    main.style.setProperty('--dock-h', `${hgt}px`);
-    localStorage.setItem('cut.dockH', String(Math.round(hgt)));
+    const hgt = clamp(start + (ev.clientY - sy), 180, main.clientHeight - 230);
+    main.style.setProperty('--top-h', `${hgt}px`);
+    localStorage.setItem('cut.topH', String(Math.round(hgt)));
   };
   const up = () => { splitH.removeEventListener('pointermove', move); splitH.removeEventListener('pointerup', up); };
   splitH.addEventListener('pointermove', move);

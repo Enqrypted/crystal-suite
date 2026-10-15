@@ -84,6 +84,7 @@ export class MediaBin {
     el.addEventListener('contextmenu', (e) => contextMenu(e, [
       { label: 'Add at Cursor', enabled: () => !offline, run: () => edit.addMedia([m], store.time, store.activeTrack) },
       { label: 'Relink File…', run: () => this.relink(m) },
+      { label: 'Match Project Video Settings', enabled: () => m.kind === 'video' && !!m.width, run: () => edit.matchProject(m) },
       { label: 'Show in Folder', enabled: () => !offline, run: () => native.showInFolder(m.path) },
       { sep: true },
       { label: 'Remove from Project…', run: () => this.remove(m) },

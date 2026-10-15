@@ -16,6 +16,9 @@ export class Preview {
   private overlaps: Map<string, Overlaps> = new Map();
   private tc: HTMLElement;
   private info: HTMLElement;
+  private fmt: HTMLElement;
+  /** Opens Project Properties (set by the app). */
+  onFormatClick: () => void = () => {};
   private quality: HTMLSelectElement;
   private raf = 0;
   private fpsCount = { n: 0, t: performance.now(), fps: 0 };
@@ -31,10 +34,12 @@ export class Preview {
     this.quality.addEventListener('change', () => store.setView('previewQuality', this.quality.value as never));
     this.tc = h('span', { class: 'tc' });
     this.info = h('span');
+    this.fmt = h('span', { class: 'fmt', title: 'Project video settings — click to change' });
+    this.fmt.addEventListener('click', () => this.onFormatClick());
     this.el = h('div', { class: 'preview' },
       h('div', { class: 'panel-head' }, h('span', { class: 'title' }, 'Video Preview'), h('div', { class: 'spacer' }), this.quality),
       this.stage,
-      h('div', { class: 'foot' }, this.tc, h('div', { style: 'flex:1' }), this.info));
+      h('div', { class: 'foot' }, this.tc, this.fmt, h('div', { style: 'flex:1' }), this.info));
     this.frames.onFrame = () => this.request();
     new ResizeObserver(() => this.request()).observe(this.stage);
     this.overlaps = overlapMap(store.project);
@@ -95,7 +100,8 @@ export class Preview {
     f.n++;
     const now = performance.now();
     if (now - f.t > 1000) { f.fps = Math.round((f.n * 1000) / (now - f.t)); f.n = 0; f.t = now; }
-    this.info.textContent = `${p.width}×${p.height}, ${+p.fps.toFixed(3)} fps · display ${s.w}×${s.h}${playing ? ` · ${f.fps} fps` : ''}`;
+    this.fmt.textContent = `Project ${p.width}×${p.height} (${aspectName(p.width, p.height)}) · ${+p.fps.toFixed(3)} fps`;
+    this.info.textContent = `Preview ${s.w}×${s.h}${playing ? ` · ${f.fps} fps` : ''}`;
   }
 
   /** The current frame at full project resolution as PNG bytes (Save Snapshot). */
@@ -106,4 +112,14 @@ export class Preview {
     drawFrame(ctx, p, store.time, p.width, p.height, this.overlaps, (clip) => this.frames.frame(p, clip, store.time, false));
     return c.convertToBlob({ type: 'image/png' });
   }
+}
+
+/** "16:9", "9:16", "1:1", "4:3"… or a decimal ratio. */
+export function aspectName(w: number, h: number) {
+  const g = (a: number, b: number): number => (b ? g(b, a % b) : a);
+  const d = g(w, h);
+  const a = w / d;
+  const b = h / d;
+  if (a <= 32 && b <= 32) return `${a}:${b}`;
+  return `${(w / h).toFixed(2)}:1`;
 }

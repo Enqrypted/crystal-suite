@@ -135,12 +135,27 @@ export async function projectProperties() {
   const preset = h('select', {}, ...presets.map(([n], i) => h('option', { value: String(i) }, n))) as HTMLSelectElement;
   const w = h('input', { type: 'number', min: 16, max: 7680, value: p.width }) as HTMLInputElement;
   const hh = h('input', { type: 'number', min: 16, max: 4320, value: p.height }) as HTMLInputElement;
-  const match = presets.findIndex(([, a, b]) => a === p.width && b === p.height);
-  preset.value = String(match >= 0 ? match : presets.length - 1);
+  const current = presets.findIndex(([, a, b]) => a === p.width && b === p.height);
+  preset.value = String(current >= 0 ? current : presets.length - 1);
   preset.addEventListener('change', () => { const [, a, b] = presets[Number(preset.value)]; if (a) { w.value = String(a); hh.value = String(b); } });
   const fps = h('select', {}, ...[23.976, 24, 25, 29.97, 30, 50, 59.94, 60].map((f) => h('option', { value: String(f) }, `${f} fps`))) as HTMLSelectElement;
   fps.value = String([23.976, 24, 25, 29.97, 30, 50, 59.94, 60].reduce((a, b) => (Math.abs(b - p.fps) < Math.abs(a - p.fps) ? b : a)));
+  const videos = p.media.filter((m) => m.kind === 'video' && m.width && m.height);
+  const match = h('select', {}, h('option', { value: '' }, videos.length ? 'Choose a video…' : 'No video in the project yet'),
+    ...videos.map((m) => h('option', { value: m.id }, `${m.name} — ${m.width}×${m.height}, ${+m.fps.toFixed(3)} fps`))) as HTMLSelectElement;
+  match.disabled = !videos.length;
+  match.addEventListener('change', () => {
+    const m = videos.find((v) => v.id === match.value);
+    if (!m) return;
+    w.value = String(m.width);
+    hh.value = String(m.height);
+    const rates = [23.976, 24, 25, 29.97, 30, 50, 59.94, 60];
+    fps.value = String(rates.reduce((a, b) => (Math.abs(b - m.fps) < Math.abs(a - m.fps) ? b : a)));
+    const i = presets.findIndex(([, a, b]) => a === m.width && b === m.height);
+    preset.value = String(i >= 0 ? i : presets.length - 1);
+  });
   const body = h('div', { class: 'form' },
+    h('label', {}, 'Match media'), match,
     h('label', {}, 'Template'), preset,
     h('label', {}, 'Width'), w,
     h('label', {}, 'Height'), hh,
