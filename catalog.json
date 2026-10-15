@@ -30,13 +30,13 @@
     {
       "id": "cut",
       "name": "Cut",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "description": "Video editing",
-      "url": "https://github.com/Enqrypted/crystal-suite/releases/download/cut-v0.1.1/cut-0.1.1.zip",
-      "size": 219668,
-      "sha256": "181a2981ff7eeefe521fe58c597b83afe903f44b2976ebb8ece2a2d26406f293",
+      "url": "https://github.com/Enqrypted/crystal-suite/releases/download/cut-v0.1.2/cut-0.1.2.zip",
+      "size": 219765,
+      "sha256": "3132c1c219e9d8177b15a5310d1e9471a420d5334f1f35d29c11fe990cdf3671",
       "minLauncher": "0.2.0",
-      "notes": "Fixes the video preview freezing during playback while the audio kept going. The preview now sits on top with the timeline below, the project frame is outlined so its aspect ratio is easy to see, and the preview footer shows the project format (click it to change). New: Match media in Project Properties and Match Project Video Settings in the media bin."
+      "notes": "Fixes the video preview freezing during playback while the audio kept going, especially with screen recordings (OBS and similar), and keeps playback moving on a busy PC. The preview now sits on top with the timeline below, the project frame is outlined so its aspect ratio is easy to see, and the preview footer shows the project format (click it to change). New: Match media in Project Properties and Match Project Video Settings in the media bin."
     }
   ]
 }
