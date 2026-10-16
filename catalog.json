@@ -51,6 +51,20 @@
       "sha256": "16d697ec42783d198bff58293dde5f44558796858802519a85307fb7adfb3ee3",
       "minLauncher": "0.2.0",
       "notes": "New widgets: Spotify (album art, progress, play/pause, skip, shuffle and repeat; works with the Spotify app, no sign-in), a Control Center (Wi-Fi, Bluetooth, night light and dark mode toggles, now playing, time, CPU and memory, brightness and volume sliders, and quick buttons), and Recent folders. Add them with the Widget button in Facet or from the tray."
+    },
+    {
+      "id": "quartz",
+      "name": "Quartz",
+      "version": "0.1.0",
+      "description": "PDF reader & editor",
+      "badge": "Qz",
+      "color": "#ff7a6b",
+      "bg": "#3b0d0d",
+      "url": "https://github.com/Enqrypted/crystal-suite/releases/download/quartz-v0.1.0/quartz-0.1.0.zip",
+      "size": 2864481,
+      "sha256": "218ca5700ff8177693c7a25f67f93569f84bc8bbe1ba85ae2a45da468bed3d24",
+      "minLauncher": "0.2.0",
+      "notes": "First release: a fast PDF reader with tabs, thumbnails, outline, search and night mode, plus editing: highlight, draw, add text and images, fill forms, sign (draw, type or use an image), organize pages (reorder, rotate, delete, duplicate, insert, extract), combine and split PDFs, export pages as images, and print."
     }
   ]
 }
