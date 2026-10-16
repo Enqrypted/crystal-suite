@@ -13,6 +13,8 @@
     ; Facet: starting with Windows, and the Windows desktop icons if Facet hid them
     DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "CrystalSuite.Facet"
     DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run" "CrystalSuite.Facet"
+    nsExec::Exec 'schtasks /delete /tn "Crystal Suite Facet" /f'
+    Pop $0
     ${If} ${FileExists} "$APPDATA\Crystal Suite\Facet\icons-hidden"
       FindFirst $0 $1 "$LOCALAPPDATA\Crystal Suite\Apps\facet\*"
       ${DoWhile} $1 != ""

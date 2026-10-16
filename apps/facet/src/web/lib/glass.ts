@@ -10,9 +10,11 @@ const SCALE = 0.25; // the blurred copy is a quarter of the screen resolution
 let current = '';
 let objectUrl = '';
 
-export async function applyWall(wall: Wall | null) {
+const keyOf = (wall: Wall) => JSON.stringify([wall.stamp, wall.position, wall.bg, wall.monitor, wall.work, wall.virtual, innerWidth, innerHeight]);
+
+export async function applyWall(wall: Wall | null, display = '') {
   if (!wall) return;
-  const key = JSON.stringify([wall.stamp, wall.position, wall.bg, wall.monitor, wall.work, wall.virtual]);
+  const key = keyOf(wall);
   if (key === current) return;
   current = key;
   let img: ImageBitmap | null = null;
@@ -24,13 +26,64 @@ export async function applyWall(wall: Wall | null) {
   }
   if (key !== current) return; // a newer wallpaper arrived meanwhile
   const blob = await render(wall, img);
-  setSource(lensSource(wall, img), LENS);
+  const lens = lensSource(wall, img);
+  setSource(lens, LENS);
   img?.close();
   if (key !== current) return;
+  showWall(blob);
+  if (display) saveCache(display, key, blob, lens).catch(() => {});
+}
+
+function showWall(blob: Blob) {
   const url = URL.createObjectURL(blob);
   document.documentElement.style.setProperty('--wall', `url("${url}")`);
   if (objectUrl) setTimeout((u: string) => URL.revokeObjectURL(u), 2000, objectUrl);
   objectUrl = url;
+}
+
+// ---------- cache: decoding a big wallpaper takes a moment, so the processed images are kept ----------
+
+interface Cached { key: string; wall: Blob; lens: Blob; w: number; h: number; vw: number; vh: number }
+
+function db(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const r = indexedDB.open('facet-wall', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('wall');
+    r.onsuccess = () => resolve(r.result);
+    r.onerror = () => reject(r.error);
+  });
+}
+
+async function saveCache(display: string, key: string, wall: Blob, lens: ImageData) {
+  const c = new OffscreenCanvas(lens.width, lens.height);
+  c.getContext('2d')!.putImageData(lens, 0, 0);
+  const rec: Cached = { key, wall, lens: await c.convertToBlob({ type: 'image/jpeg', quality: 0.9 }), w: lens.width, h: lens.height, vw: innerWidth, vh: innerHeight };
+  const d = await db();
+  await new Promise<void>((resolve) => { const t = d.transaction('wall', 'readwrite'); t.objectStore('wall').put(rec, display); t.oncomplete = () => resolve(); t.onerror = () => resolve(); });
+  d.close();
+}
+
+/** Shows the wallpaper processed last time (if the display is the same size); the real one follows. */
+export async function applyCachedWall(display: string) {
+  try {
+    const d = await db();
+    const rec = await new Promise<Cached | undefined>((resolve) => {
+      const r = d.transaction('wall', 'readonly').objectStore('wall').get(display);
+      r.onsuccess = () => resolve(r.result as Cached | undefined);
+      r.onerror = () => resolve(undefined);
+    });
+    d.close();
+    if (!rec || rec.vw !== innerWidth || rec.vh !== innerHeight || current) return;
+    const bmp = await createImageBitmap(rec.lens);
+    const c = new OffscreenCanvas(rec.w, rec.h);
+    const x = c.getContext('2d', { willReadFrequently: true })!;
+    x.drawImage(bmp, 0, 0);
+    bmp.close();
+    if (current) return;
+    current = rec.key;
+    setSource(x.getImageData(0, 0, rec.w, rec.h), LENS);
+    showWall(rec.wall);
+  } catch { /* no cache yet */ }
 }
 
 async function render(wall: Wall, img: ImageBitmap | null): Promise<Blob> {

@@ -31,7 +31,9 @@ export class Helper {
     if (this.proc || this.stopped || !this.available) return;
     let p: ChildProcessWithoutNullStreams;
     try {
-      p = spawn(this.exe, ['--pid', String(process.pid)], { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
+      // detached: outside the job that would end it together with Facet, so after a crash it still sees its
+      // input close and shows the desktop icons again before it exits
+      p = spawn(this.exe, ['--pid', String(process.pid)], { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true, detached: true });
     } catch { return; }
     this.proc = p;
     p.stdout.setEncoding('utf8');

@@ -63,7 +63,7 @@ export interface Settings {
   lock: boolean;
   glass: 'light' | 'dark';
   labels: boolean;
-  /** Facet hid the Windows desktop icons (so uninstalling shows them again). */
+  /** Hide the Windows desktop icons while Facet runs. */
   iconsHidden: boolean;
 }
 
@@ -100,6 +100,8 @@ export interface State {
   /** Whether the Windows desktop icons are showing (null when unknown). */
   iconsVisible: boolean | null;
   standalone: boolean;
+  /** The Windows accent colour (selection box). */
+  accent: string;
 }
 
 export interface IconInfo { url: string; kind: 'icon' | 'thumb' | 'art'; missing?: boolean }

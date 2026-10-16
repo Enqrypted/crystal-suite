@@ -12,8 +12,9 @@ import fs from 'fs';
 import path from 'path';
 import { spawn, spawnSync } from 'child_process';
 import { pathToFileURL } from 'url';
-import { app, BrowserWindow, dialog, Menu, nativeImage, screen, shell, Tray, type Display, type WebContents } from 'electron';
+import { app, BrowserWindow, dialog, Menu, nativeImage, screen, shell, systemPreferences, Tray, type Display, type WebContents } from 'electron';
 import { Helper } from './helper';
+import { deleteTask, registerTask } from './startup';
 import { categorize, displayName, scanDesktop } from './desktop';
 import { cleanItem, cleanLayout, cleanSettings, cleanWidget, newClock, newFolder, newId, type Layout } from './layout';
 import type { DeskCommand, DisplayInfo, FolderWidget, HitRect, IconInfo, OrganizeGroup, Rect, Settings, State, Wall, Widget } from '../shared/types';
@@ -32,8 +33,13 @@ export interface Host {
   decorateWindow?(win: BrowserWindow): void;
 }
 
-/** Name of Facet's value under HKCU\...\Run. */
+/** Name of Facet's value under HKCU\...\Run (the fallback way of starting with Windows, and Facet 0.1's). */
 const RUN_NAME = 'CrystalSuite.Facet';
+/** The scheduled task that starts Facet at sign-in (Windows holds Run-key programs back for a while). */
+const TASK_NAME = 'Crystal Suite Facet';
+/** Written while Facet hides the desktop icons, so the Crystal Suite uninstaller can bring them back. */
+const ICONS_MARKER = 'icons-hidden';
+
 /** Passed (as a file, so any launcher version forwards it) when Windows starts Facet: no window then. */
 const STARTUP_MARKER = 'startup.facet';
 const IMAGE_EXT = /\.(jpe?g|png|bmp|webp|gif)$/i;
@@ -88,13 +94,17 @@ class Facet {
     this.helper = new Helper(path.join(host.appDir, 'FacetHelper.exe'));
     this.helper.onStart = () => {
       for (const d of this.desks.values()) if (d.hwnd) this.helper.call('pin', d.hwnd);
-      this.refreshIconsVisible();
+      this.helper.call('logoff-keep', this.keepsIconsHiddenAtLogoff() ? '1' : '0');
+      this.applyIcons();
+      // once more shortly: a Facet version being replaced may still be putting the icons back
+      setTimeout(() => this.applyIcons(), 1500);
       this.refreshWalls();
       this.push();
     };
-    this.helper.onEvent = (name) => {
+    this.helper.onEvent = (name, data) => {
       if (name === 'wallpaper') setTimeout(() => this.refreshWalls(), 400);
-      if (name === 'explorer') { this.refreshIconsVisible(); this.refreshWalls(); }
+      if (name === 'explorer') { this.applyIcons(); this.refreshWalls(); }
+      if (name === 'drag') this.onDesktopDrag(data);
     };
   }
 
@@ -130,7 +140,14 @@ class Facet {
     this.timers.push(setInterval(() => this.checkWallChanged(), 30000));
     this.timers.push(setInterval(() => this.checkForUpdate(), 10 * 60000));
     this.createTray();
+    systemPreferences.on('accent-color-changed', this.onAccent);
     if (!this.helper.available) this.refreshWalls();
+  }
+
+  private onAccent = () => this.push();
+
+  private accent() {
+    try { return '#' + systemPreferences.getAccentColor().slice(0, 6); } catch { return '#0078d4'; }
   }
 
   stop() {
@@ -149,7 +166,10 @@ class Facet {
     this.home = null;
     this.tray?.destroy();
     this.tray = null;
+    systemPreferences.removeListener('accent-color-changed', this.onAccent);
+    // closing the helper's input makes it show the desktop icons Facet hid
     this.helper.stop();
+    if (this.layout.settings.iconsHidden) { try { fs.rmSync(path.join(this.host.dataDir, ICONS_MARKER), { force: true }); } catch { /* gone */ } }
   }
 
   // ---------- state ----------
@@ -165,7 +185,7 @@ class Facet {
   private state(): State {
     return {
       version: this.host.version, widgets: this.layout.widgets, settings: this.layout.settings, displays: this.displays(),
-      helper: this.helper.ready, iconsVisible: this.iconsVisible, standalone: this.host.standalone,
+      helper: this.helper.ready, iconsVisible: this.iconsVisible, standalone: this.host.standalone, accent: this.accent(),
     };
   }
 
@@ -259,7 +279,10 @@ class Facet {
     const before = this.layout.settings;
     const next = cleanSettings({ ...before, ...patch });
     this.layout.settings = next;
-    if (next.startup !== before.startup) this.applyStartup(next.startup);
+    if (next.startup !== before.startup) {
+      this.applyStartup(next.startup);
+      this.helper.call('logoff-keep', this.keepsIconsHiddenAtLogoff() ? '1' : '0');
+    }
     this.changed();
   }
 
@@ -452,16 +475,69 @@ class Facet {
 
   // ---------- Windows integration ----------
 
+  private startupTimer: NodeJS.Timeout | null = null;
+
+  /** Start with Windows (or not). schtasks takes a moment, so this never runs on the startup path. */
   private applyStartup(on: boolean) {
-    // CRYSTAL_NO_STARTUP: tests run Facet in the launcher without touching the real Run key
+    // CRYSTAL_NO_STARTUP: tests run Facet in the launcher without touching the real Run key or tasks
     if (this.host.standalone || process.platform !== 'win32' || process.env.CRYSTAL_NO_STARTUP) return;
+    if (this.startupTimer) clearTimeout(this.startupTimer);
+    this.startupTimer = setTimeout(() => { this.startupTimer = null; this.writeStartup(on); }, on ? 4000 : 0);
+  }
+
+  private async writeStartup(on: boolean) {
     try {
       const cmd = this.host.launchCommand();
       const marker = path.join(this.host.dataDir, STARTUP_MARKER);
       if (on) fs.writeFileSync(marker, 'Windows starts Facet with this file (it opens the widgets without a window).\n');
       const quote = (a: string) => (/\s/.test(a) ? `"${a}"` : a);
-      app.setLoginItemSettings({ openAtLogin: on, path: cmd.exe, args: [...cmd.args, marker].map(quote), name: RUN_NAME } as Electron.Settings);
+      const args = [...cmd.args, marker].map(quote);
+      const task = on ? await registerTask(TASK_NAME, cmd.exe, args.join(' '), this.host.dataDir) : (await deleteTask(TASK_NAME), false);
+      // the Run entry is only the fallback: exactly one of the two starts Facet
+      app.setLoginItemSettings({ openAtLogin: on && !task, path: cmd.exe, args, name: RUN_NAME } as Electron.Settings);
     } catch (e) { console.warn('Facet: start with Windows', e); }
+  }
+
+  /** At sign-out the icons stay hidden only if Facet comes back at sign-in to own them again. */
+  private keepsIconsHiddenAtLogoff() {
+    return this.layout.settings.startup && !this.host.standalone && !process.env.CRYSTAL_NO_STARTUP;
+  }
+
+  /**
+   * "Hide the desktop icons" means while Facet runs: applied on every start (the helper shows them
+   * again when Facet stops). While they're hidden the helper reports drags on the empty desktop, so the
+   * layer can draw the selection box Windows no longer does.
+   */
+  private async applyIcons() {
+    const marker = path.join(this.host.dataDir, ICONS_MARKER);
+    if (this.layout.settings.iconsHidden) {
+      const r = await this.helper.call('set-icons', '0');
+      if (r !== null) {
+        this.iconsVisible = r === '1';
+        try { fs.writeFileSync(marker, 'Facet hid the Windows desktop icons.\n'); } catch { /* optional */ }
+      }
+    } else if (exists(marker)) {
+      // still hidden from an earlier session (signed out while Facet was hiding them)
+      const r = await this.helper.call('set-icons', '1');
+      if (r !== null) { this.iconsVisible = r === '1'; try { fs.rmSync(marker, { force: true }); } catch { /* gone */ } }
+    } else await this.refreshIconsVisible();
+    await this.helper.call('drag-watch', this.layout.settings.iconsHidden ? '1' : '0');
+    this.push();
+  }
+
+  private dragDesk: Desk | null = null;
+
+  /** A drag that started on the empty desktop (helper, physical pixels) -> the layer it is on. */
+  private onDesktopDrag(data: string) {
+    const [phase, sx, sy] = data.split(' ');
+    const p = screen.screenToDipPoint({ x: Number(sx), y: Number(sy) });
+    if (phase === 'start') {
+      this.dragDesk = [...this.desks.values()].find((d) => p.x >= d.bounds.x && p.y >= d.bounds.y && p.x < d.bounds.x + d.bounds.width && p.y < d.bounds.y + d.bounds.height) ?? null;
+    }
+    const d = this.dragDesk;
+    if (!d || d.win.isDestroyed()) return;
+    d.win.webContents.send('facet:marquee', { phase, x: p.x - d.bounds.x, y: p.y - d.bounds.y });
+    if (phase === 'end') this.dragDesk = null;
   }
 
   private async refreshIconsVisible() {
@@ -471,17 +547,18 @@ class Facet {
   }
 
   private async setDesktopIcons(show: boolean) {
+    this.layout.settings.iconsHidden = !show;
+    this.changed();
     const r = await this.helper.call('set-icons', show ? '1' : '0');
     if (r === null) return;
     this.iconsVisible = r === '1';
-    this.layout.settings.iconsHidden = !this.iconsVisible;
-    // lets the Crystal Suite uninstaller bring the icons back (it can't read facet.json)
-    const marker = path.join(this.host.dataDir, 'icons-hidden');
+    const marker = path.join(this.host.dataDir, ICONS_MARKER);
     try {
       if (this.iconsVisible) fs.rmSync(marker, { force: true });
       else fs.writeFileSync(marker, 'Facet hid the Windows desktop icons.\n');
     } catch { /* optional */ }
-    this.changed();
+    await this.helper.call('drag-watch', show ? '0' : '1');
+    this.push();
   }
 
   // ---------- windows ----------
@@ -576,7 +653,7 @@ class Facet {
       { label: 'New Clock', click: () => this.addWidget('clock') },
       { label: 'Organize Desktop…', click: () => { this.showHome(); this.home?.webContents.send('facet:command', { kind: 'organize' }); } },
       { type: 'separator' },
-      { label: 'Show Desktop Icons', type: 'checkbox', checked: this.iconsVisible !== false, enabled: this.iconsVisible !== null, click: (m) => this.setDesktopIcons(m.checked) },
+      { label: 'Hide Desktop Icons', type: 'checkbox', checked: s.iconsHidden, enabled: this.helper.ready, click: (m) => this.setDesktopIcons(!m.checked) },
       { label: 'Lock Widgets', type: 'checkbox', checked: s.lock, click: (m) => this.setSettings({ lock: m.checked }) },
       ...(this.host.standalone ? [] : [{ label: 'Start with Windows', type: 'checkbox' as const, checked: s.startup, click: (m: Electron.MenuItem) => this.setSettings({ startup: m.checked }) }]),
       { type: 'separator' },
@@ -677,6 +754,7 @@ export function activate(host: Host) {
 export async function uninstall() {
   current?.stop();
   try { app.setLoginItemSettings({ openAtLogin: false, name: RUN_NAME } as Electron.Settings); } catch { /* not set */ }
+  try { spawnSync('schtasks', ['/delete', '/tn', TASK_NAME, '/f'], { timeout: 10000, windowsHide: true }); } catch { /* not there */ }
   const dataDir = path.join(app.getPath('userData'), 'Facet');
   const layout = readJson<any>(path.join(dataDir, 'facet.json'), null);
   const exe = path.join(__dirname, 'FacetHelper.exe');

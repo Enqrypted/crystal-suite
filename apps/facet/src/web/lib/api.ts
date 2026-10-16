@@ -27,6 +27,8 @@ export interface FacetApi {
   onWall(cb: (w: Wall) => void): void;
   onInteractive(cb: (on: boolean) => void): void;
   onCommand(cb: (c: DeskCommand | { kind: 'organize' }) => void): void;
+  /** A drag on the empty desktop (only while the Windows desktop icons are hidden). */
+  onMarquee(cb: (m: { phase: 'start' | 'move' | 'end'; x: number; y: number }) => void): void;
   pathForFile(file: File): string;
 }
 

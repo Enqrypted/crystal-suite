@@ -11,6 +11,9 @@
 html, body { margin: 0; width: 100%; height: 100%; background: transparent; overflow: hidden; user-select: none; font-family: var(--ui); }
 img { -webkit-user-drag: none; }
 #layer, #overlays { position: fixed; inset: 0; pointer-events: none; }
+/* widgets fade in once their glass is ready (a fraction of a second), not as grey boxes first */
+#layer { transition: opacity .25s ease; }
+body.starting #layer { opacity: 0; }
 #layer > *, #overlays > * { pointer-events: auto; }
 
 /* glass: frosted (the blurred wallpaper lined up with the screen, lib/glass.ts) until the liquid glass
@@ -36,6 +39,19 @@ img { -webkit-user-drag: none; }
 .folder .tile:hover::after, .folder .panel:hover::after { opacity: 1; }
 
 .widget { position: absolute; }
+
+/* selection: the box drawn while dragging on the desktop, and selected widgets (Windows' accent colour) */
+.marquee {
+  position: fixed; z-index: 80; pointer-events: none; border-radius: 3px;
+  background: color-mix(in srgb, var(--accent, #0078d4) 26%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent, #0078d4) 85%, white);
+}
+.marquee.out { opacity: 0; transition: opacity .18s; }
+.widget.selected::before {
+  content: ""; position: absolute; inset: -8px; border-radius: 20px; pointer-events: none; z-index: -1;
+  background: color-mix(in srgb, var(--accent, #0078d4) 24%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent, #0078d4) 75%, transparent);
+}
 .widget.moving { z-index: 10; filter: drop-shadow(0 18px 28px rgba(0, 0, 0, .35)); }
 .widget.flash { animation: flash 1.4s ease; }
 @keyframes flash { 0%, 100% { filter: none; } 20%, 60% { filter: drop-shadow(0 0 14px rgba(255, 255, 255, .95)); } 40% { filter: none; } }

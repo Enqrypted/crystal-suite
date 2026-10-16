@@ -1,6 +1,7 @@
 // Facet's Windows helper. Keeps the widget layer on the desktop (owned by the shell's desktop window,
 // directly above it, never minimized by "Show desktop"), extracts large shell icons and thumbnails,
-// reports the wallpaper and toggles the Windows desktop icons.
+// reports the wallpaper, toggles the Windows desktop icons (and shows them again whenever Facet stops) and
+// reports drags that start on the empty desktop (for Facet's selection box while the icons are hidden).
 //
 // Protocol (UTF-8 lines on stdin/stdout, tab-separated):
 //   request  "<id>\t<command>\t<arg>..."     reply  "<id>\tok\t<result>" or "<id>\terr\t<message>"
@@ -21,17 +22,12 @@ using System.Windows.Forms;
 
 static class Program
 {
-    public const string Version = "1";
-    static readonly object outLock = new object();
+    public const string Version = "2";
     static TextWriter stdout;
+    static readonly BlockingCollection<string> outbox = new BlockingCollection<string>();
 
-    public static void Send(string line)
-    {
-        lock (outLock)
-        {
-            try { stdout.Write(line + "\n"); stdout.Flush(); } catch { }
-        }
-    }
+    /// <summary>Queues a line for Facet; a writer thread sends it (callers, such as the mouse hook, never wait).</summary>
+    public static void Send(string line) { outbox.Add(line); }
     public static void Event(string name, string data) { Send("0\tevent\t" + name + "\t" + (data ?? "")); }
 
     [STAThread]
@@ -45,6 +41,12 @@ static class Program
         for (int i = 0; i + 1 < args.Length; i++) if (args[i] == "--pid") int.TryParse(args[i + 1], out pid);
 
         stdout = new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false));
+        var writer = new Thread(delegate ()
+        {
+            foreach (var line in outbox.GetConsumingEnumerable()) { try { stdout.Write(line + "\n"); stdout.Flush(); } catch { } }
+        });
+        writer.IsBackground = true;
+        writer.Start();
         var stdin = new StreamReader(Console.OpenStandardInput(), new UTF8Encoding(false));
         var host = new Host(pid);
         var icons = new IconWorker();
@@ -52,12 +54,14 @@ static class Program
         {
             string line;
             try { while ((line = stdin.ReadLine()) != null) Dispatch(line, host, icons); } catch { }
-            host.Post(delegate { Application.ExitThread(); });
+            // Facet quit, was updated or crashed: put back the desktop icons it hid, then go
+            host.Post(delegate { host.Closing(); Application.ExitThread(); });
         });
         reader.IsBackground = true;
         reader.Start();
         Event("ready", Version);
         Application.Run();
+        DragWatcher.Stop();
         host.Unpin();
         return 0;
     }
@@ -78,7 +82,9 @@ static class Program
                 case "icon": icons.Enqueue(id, a[2], int.Parse(a[3]), a[4]); break;
                 case "wallpaper": Send(id + "\tok\t" + Wallpaper.Describe()); break;
                 case "icons-visible": Send(id + "\tok\t" + (Shell.IconsVisible() ? "1" : "0")); break;
-                case "set-icons": host.Post(delegate { Shell.SetIconsVisible(a[2] == "1"); Send(id + "\tok\t" + (Shell.IconsVisible() ? "1" : "0")); }); break;
+                case "set-icons": host.Post(delegate { host.SetIcons(a[2] == "1"); Send(id + "\tok\t" + (Shell.IconsVisible() ? "1" : "0")); }); break;
+                case "logoff-keep": host.KeepHiddenAtLogoff = a[2] == "1"; Send(id + "\tok\t"); break;
+                case "drag-watch": host.Post(delegate { if (a[2] == "1") DragWatcher.Start(host); else DragWatcher.Stop(); Send(id + "\tok\t"); }); break;
                 default: Send(id + "\terr\tunknown command " + cmd); break;
             }
         }
@@ -102,6 +108,27 @@ class Host : NativeWindow
     readonly Native.WinEventProc onForeground, onMinimize;
     readonly System.Windows.Forms.Timer check = new System.Windows.Forms.Timer();
     bool desktopShown;
+    /// <summary>Facet hid the desktop icons: they come back when it stops.</summary>
+    bool hidIcons;
+    volatile bool sessionEnding;
+    /// <summary>At sign-out, leave them hidden (Facet starts with Windows and hides them again).</summary>
+    public volatile bool KeepHiddenAtLogoff;
+
+    public void SetIcons(bool show)
+    {
+        Shell.SetIconsVisible(show);
+        hidIcons = !show;
+    }
+
+    /// <summary>Facet is going away (or Windows is signing out): show the icons Facet hid.</summary>
+    public void Closing()
+    {
+        if (!hidIcons || (sessionEnding && KeepHiddenAtLogoff)) return;
+        Shell.SetIconsVisible(true);
+        hidIcons = false;
+    }
+
+    public IntPtr[] Pinned() { return pinned.ToArray(); }
 
     public Host(int pid)
     {
@@ -126,6 +153,22 @@ class Host : NativeWindow
             return;
         }
         if (m.Msg == WM_SETTINGCHANGE && m.WParam.ToInt64() == SPI_SETDESKWALLPAPER) Program.Event("wallpaper", "");
+        if (m.Msg == 0x0011) { sessionEnding = true; m.Result = new IntPtr(1); return; } // WM_QUERYENDSESSION
+        if (m.Msg == 0x0016) // WM_ENDSESSION
+        {
+            if (m.WParam != IntPtr.Zero)
+            {
+                if (hidIcons && !KeepHiddenAtLogoff)
+                {
+                    Shell.SetIconsVisible(true);
+                    Shell.WriteHideIcons(false); // in case Explorer is already gone
+                    hidIcons = false;
+                }
+            }
+            else sessionEnding = false; // sign-out cancelled
+            m.Result = IntPtr.Zero;
+            return;
+        }
         if (m.Msg == taskbarCreated)
         {
             // Explorer restarted: the desktop window is new, re-own and re-place everything shortly
@@ -139,6 +182,7 @@ class Host : NativeWindow
     public void Pin(IntPtr h)
     {
         if (!pinned.Contains(h)) pinned.Add(h);
+        DragWatcher.Ours(pinned.ToArray());
         Place(h);
     }
     public void Unpin(IntPtr h)
@@ -253,6 +297,12 @@ static class Shell
     {
         IntPtr lv = Native.FindWindowEx(DefView(), IntPtr.Zero, "SysListView32", null);
         return lv != IntPtr.Zero && Native.IsWindowVisible(lv);
+    }
+
+    /// <summary>Explorer's own setting behind View > Show desktop icons.</summary>
+    public static void WriteHideIcons(bool hide)
+    {
+        try { Microsoft.Win32.Registry.SetValue(@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced", "HideIcons", hide ? 1 : 0, Microsoft.Win32.RegistryValueKind.DWord); } catch { }
     }
 
     /// <summary>Same as the desktop's View > Show desktop icons (remembered by Windows).</summary>
@@ -562,6 +612,94 @@ class IconWorker
     }
 }
 
+/// <summary>Reports left-button drags that start on the empty desktop: "drag" events "start|move|end x y" in
+/// physical screen pixels. A low-level mouse hook on its own thread with nothing else to do, so it always
+/// answers at once; it only watches - every click still goes where it was going.</summary>
+static class DragWatcher
+{
+    const int WH_MOUSE_LL = 14, WM_MOUSEMOVE = 0x200, WM_LBUTTONDOWN = 0x201, WM_LBUTTONUP = 0x202, WM_QUIT = 0x12;
+    const long WS_EX_TRANSPARENT = 0x20;
+    const uint GA_ROOT = 2;
+    static Thread thread;
+    static uint threadId;
+    static Native.LowLevelMouseProc proc;
+    static IntPtr hook;
+    static volatile IntPtr[] ours = new IntPtr[0];
+    static bool tracking;
+    static int lastMove;
+
+    public static void Start(Host h)
+    {
+        ours = h.Pinned();
+        if (thread != null) return;
+        var started = new ManualResetEvent(false);
+        thread = new Thread(delegate ()
+        {
+            threadId = Native.GetCurrentThreadId();
+            proc = Hook;
+            hook = Native.SetWindowsHookEx(WH_MOUSE_LL, proc, Native.GetModuleHandle(null), 0);
+            started.Set();
+            Native.MSG msg;
+            while (Native.GetMessage(out msg, IntPtr.Zero, 0, 0) > 0) { }
+            if (hook != IntPtr.Zero) Native.UnhookWindowsHookEx(hook);
+            hook = IntPtr.Zero;
+        });
+        thread.IsBackground = true;
+        thread.Start();
+        started.WaitOne(2000);
+    }
+
+    /// <summary>Facet's layer windows (refreshed when they change).</summary>
+    public static void Ours(IntPtr[] hwnds) { ours = hwnds; }
+
+    public static void Stop()
+    {
+        if (thread == null) return;
+        Native.PostThreadMessage(threadId, WM_QUIT, IntPtr.Zero, IntPtr.Zero);
+        thread = null;
+        tracking = false;
+    }
+
+    static IntPtr Hook(int code, IntPtr wParam, IntPtr lParam)
+    {
+        if (code >= 0)
+        {
+            int msg = wParam.ToInt32();
+            if (msg == WM_LBUTTONDOWN || (tracking && (msg == WM_MOUSEMOVE || msg == WM_LBUTTONUP)))
+            {
+                var info = (Native.MSLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(Native.MSLLHOOKSTRUCT));
+                string at = info.pt.X + " " + info.pt.Y;
+                if (msg == WM_LBUTTONDOWN)
+                {
+                    tracking = OnDesktop(info.pt);
+                    if (tracking) Program.Event("drag", "start " + at);
+                }
+                else if (msg == WM_MOUSEMOVE)
+                {
+                    int now = Environment.TickCount;
+                    if (now - lastMove >= 12) { lastMove = now; Program.Event("drag", "move " + at); }
+                }
+                else { tracking = false; Program.Event("drag", "end " + at); }
+            }
+        }
+        return Native.CallNextHookEx(hook, code, wParam, lParam);
+    }
+
+    /// <summary>Is the empty desktop under the point (or Facet's layer, where it lets clicks through)?</summary>
+    static bool OnDesktop(Native.POINT pt)
+    {
+        IntPtr w = Native.WindowFromPoint(pt);
+        if (w == IntPtr.Zero) return false;
+        IntPtr root = Native.GetAncestor(w, GA_ROOT);
+        if (Array.IndexOf(ours, root) >= 0)
+            return (Native.GetWindowLongPtr(root, -20).ToInt64() & WS_EX_TRANSPARENT) != 0;
+        var s = new StringBuilder(32);
+        Native.GetClassName(root, s, s.Capacity);
+        string c = s.ToString();
+        return c == "Progman" || c == "WorkerW";
+    }
+}
+
 static class Native
 {
     public const uint EVENT_SYSTEM_FOREGROUND = 0x0003, EVENT_SYSTEM_MINIMIZESTART = 0x0016, WINEVENT_OUTOFCONTEXT = 0;
@@ -571,6 +709,19 @@ static class Native
 
     public delegate void WinEventProc(IntPtr hook, uint ev, IntPtr hwnd, int idObject, int idChild, uint thread, uint time);
     public delegate bool EnumProc(IntPtr h, IntPtr l);
+    public delegate IntPtr LowLevelMouseProc(int code, IntPtr wParam, IntPtr lParam);
+    [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X, Y; }
+    [StructLayout(LayoutKind.Sequential)] public struct MSLLHOOKSTRUCT { public POINT pt; public uint mouseData, flags, time; public IntPtr extra; }
+    [StructLayout(LayoutKind.Sequential)] public struct MSG { public IntPtr hwnd; public uint message; public IntPtr wParam, lParam; public uint time; public POINT pt; }
+    [DllImport("user32.dll", SetLastError = true)] public static extern IntPtr SetWindowsHookEx(int id, LowLevelMouseProc fn, IntPtr mod, uint thread);
+    [DllImport("user32.dll")] public static extern bool UnhookWindowsHookEx(IntPtr hook);
+    [DllImport("user32.dll")] public static extern IntPtr CallNextHookEx(IntPtr hook, int code, IntPtr w, IntPtr l);
+    [DllImport("user32.dll")] public static extern int GetMessage(out MSG msg, IntPtr h, uint min, uint max);
+    [DllImport("user32.dll")] public static extern bool PostThreadMessage(uint thread, int msg, IntPtr w, IntPtr l);
+    [DllImport("kernel32.dll")] public static extern uint GetCurrentThreadId();
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] public static extern IntPtr GetModuleHandle(string name);
+    [DllImport("user32.dll")] public static extern IntPtr WindowFromPoint(POINT pt);
+    [DllImport("user32.dll")] public static extern IntPtr GetAncestor(IntPtr h, uint flags);
 
     [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left, Top, Right, Bottom; }
     [StructLayout(LayoutKind.Sequential)] public struct SIZE { public int cx, cy; }

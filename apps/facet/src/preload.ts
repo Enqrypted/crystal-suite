@@ -30,6 +30,7 @@ contextBridge.exposeInMainWorld('facet', {
   onWall: listen('facet:wall'),
   onInteractive: listen('facet:interactive'),
   onCommand: listen('facet:command'),
+  onMarquee: listen('facet:marquee'),
   /** Absolute path of a file dropped from Explorer. */
   pathForFile: (file: File) => webUtils.getPathForFile(file),
 });

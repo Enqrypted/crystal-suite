@@ -234,8 +234,8 @@ function renderSettings() {
     const sw = (value: boolean, fn: (v: boolean) => void) => { const t = toggle('', value, fn); t.classList.add('bare'); return t; };
     if (!state.standalone) body.append(opt('Start with Windows', 'Your folders and clock appear as soon as you sign in.', sw(s.startup, (v) => api.settings({ startup: v }))));
     body.append(
-      opt('Windows desktop icons', state.iconsVisible === null ? 'Available when Facet’s helper is running.' : 'Hide them once your shortcuts live in folders — your files stay where they are.',
-        state.iconsVisible === null ? h('span', { class: 'muted', text: 'Unavailable' }) : sw(state.iconsVisible, (v) => api.desktopIcons(v))),
+      opt('Hide the Windows desktop icons', !state.helper ? 'Available when Facet’s helper is running.' : 'While Facet runs: they come back when you quit it. Your files stay where they are, and dragging on the desktop still draws a selection box.',
+        !state.helper ? h('span', { class: 'muted', text: 'Unavailable' }) : sw(s.iconsHidden, (v) => api.desktopIcons(!v))),
       opt('Lock widgets', 'Stops folders and clocks from being moved by accident.', sw(s.lock, (v) => api.settings({ lock: v }))),
       opt('Glass', 'The frosted look of folders and panels.', segmented([{ id: 'light', label: 'Light' }, { id: 'dark', label: 'Dark' }] as const, s.glass, (glass) => api.settings({ glass }))),
       opt('Names under icons', 'Show folder and shortcut names on the desktop.', sw(s.labels, (v) => api.settings({ labels: v }))),
@@ -272,7 +272,7 @@ async function organize() {
   const close = () => scrim.remove();
   scrim.addEventListener('pointerdown', (e) => { if (e.target === scrim) close(); });
   let hideIcons = state.iconsVisible === true;
-  const hide = toggle('Hide the Windows desktop icons afterwards', hideIcons, (v) => { hideIcons = v; });
+  const hide = toggle('Hide the Windows desktop icons while Facet runs', hideIcons, (v) => { hideIcons = v; });
   const create = h('button', { type: 'button', class: 'btn primary' });
   const cancel = h('button', { type: 'button', class: 'btn', text: 'Cancel' });
   cancel.addEventListener('click', close);

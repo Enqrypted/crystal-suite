@@ -3,11 +3,11 @@
 import type { ClockWidget, DeskCommand, DesktopEntry, DisplayInfo, FolderItem, FolderWidget, HitRect, State, Wall, Widget, Category } from '../shared/types';
 import { api } from './lib/api';
 import { h, clamp, clear } from './lib/dom';
-import { applyWall, alignGlass } from './lib/glass';
+import { applyWall, applyCachedWall, alignGlass } from './lib/glass';
 import { ClockView } from './lib/clock';
 import { clockEditor, folderEditor } from './lib/editors';
 import { closeOverlays, ICONS, itemImage, menu, modal, popover, type MenuItem } from './lib/ui';
-import { glass, unglass, refreshWithin } from './lib/liquid';
+import { glass, unglass, refreshWithin, hasSource } from './lib/liquid';
 
 const displayId = new URLSearchParams(location.search).get('display') || '';
 const layer = document.getElementById('layer')!;
@@ -68,16 +68,29 @@ function movable(view: View, handle: HTMLElement) {
   handle.addEventListener('pointerdown', (e) => {
     if (e.button !== 0 || (e.target as HTMLElement).closest('[data-nodrag]')) return;
     const sx = e.clientX, sy = e.clientY;
-    const ox = view.el.offsetLeft, oy = view.el.offsetTop;
+    // a selected widget drags the whole selection along
+    const group = selected.has(view.w.id) && selected.size > 1 ? [...selected].map((id) => views.get(id)!).filter(Boolean) : [view];
+    const starts = group.map((v) => ({ v, ox: v.el.offsetLeft, oy: v.el.offsetTop }));
     let moved = false;
     const move = (m: PointerEvent) => {
       if (m.pointerId !== e.pointerId) return;
       if (!moved && Math.hypot(m.clientX - sx, m.clientY - sy) < 5) return;
       if (state.settings.lock) return;
-      if (!moved) { moved = true; dragging++; view.el.classList.add('moving'); reportRects(); closeOverlays(); }
-      view.w.x = Math.round(clamp(ox + m.clientX - sx, 0, innerWidth - view.el.offsetWidth));
-      view.w.y = Math.round(clamp(oy + m.clientY - sy, 0, innerHeight - view.el.offsetHeight));
-      view.place();
+      if (!moved) {
+        moved = true;
+        dragging++;
+        if (group.length === 1) select(new Set());
+        group.forEach((v) => v.el.classList.add('moving'));
+        reportRects();
+        closeOverlays();
+      }
+      // the group keeps its shape: one offset, limited so every member stays on the display
+      let dx = m.clientX - sx, dy = m.clientY - sy;
+      for (const s of starts) {
+        dx = clamp(dx, -s.ox, innerWidth - s.v.el.offsetWidth - s.ox);
+        dy = clamp(dy, -s.oy, innerHeight - s.v.el.offsetHeight - s.oy);
+      }
+      for (const s of starts) { s.v.w.x = Math.round(s.ox + dx); s.v.w.y = Math.round(s.oy + dy); s.v.place(); }
     };
     const up = (u: PointerEvent) => {
       if (u.pointerId !== e.pointerId) return;
@@ -86,11 +99,13 @@ function movable(view: View, handle: HTMLElement) {
       removeEventListener('pointercancel', up);
       if (moved) {
         dragging--;
-        view.el.classList.remove('moving');
-        view.w.display = displayId;
-        api.put(view.w);
+        for (const s of starts) {
+          s.v.el.classList.remove('moving');
+          s.v.w.display = displayId;
+          api.put(s.v.w);
+        }
         reportRects();
-      } else if (u.type === 'pointerup') view.click(u);
+      } else if (u.type === 'pointerup') { select(new Set()); view.click(u); }
     };
     addEventListener('pointermove', move);
     addEventListener('pointerup', up);
@@ -101,6 +116,48 @@ function movable(view: View, handle: HTMLElement) {
     if ((e.target as HTMLElement).closest('[data-item]')) return; // items have their own menu
     menu(view.menu(), e.clientX, e.clientY);
   });
+}
+
+// ---------- selection box (the desktop's own is gone while Windows' icons are hidden) ----------
+
+const selected = new Set<string>();
+
+function select(ids: Set<string>) {
+  selected.clear();
+  for (const id of ids) selected.add(id);
+  for (const [id, v] of views) v.el.classList.toggle('selected', selected.has(id));
+}
+
+let marquee: { x: number; y: number; box: HTMLElement | null } | null = null;
+
+/** Drags that start on the empty desktop, reported by the helper (the layer never takes those clicks). */
+function onMarquee(m: { phase: 'start' | 'move' | 'end'; x: number; y: number }) {
+  if (m.phase === 'start') { marquee = { x: m.x, y: m.y, box: null }; return; }
+  if (!marquee) return;
+  const x0 = Math.min(marquee.x, m.x), y0 = Math.min(marquee.y, m.y);
+  const w = Math.abs(m.x - marquee.x), hgt = Math.abs(m.y - marquee.y);
+  if (!marquee.box && (w > 3 || hgt > 3)) {
+    marquee.box = h('div', { class: 'marquee' });
+    overlays.append(marquee.box);
+  }
+  if (marquee.box) {
+    Object.assign(marquee.box.style, { left: `${x0}px`, top: `${y0}px`, width: `${w}px`, height: `${hgt}px` });
+    const ids = new Set<string>();
+    for (const [id, v] of views) {
+      const r = v.el.getBoundingClientRect();
+      if (r.right > x0 && r.left < x0 + w && r.bottom > y0 && r.top < y0 + hgt) ids.add(id);
+    }
+    select(ids);
+  }
+  if (m.phase === 'end') {
+    if (!marquee.box) select(new Set()); // a click on the desktop clears the selection
+    else {
+      const box = marquee.box;
+      box.classList.add('out');
+      setTimeout(() => box.remove(), 180);
+    }
+    marquee = null;
+  }
 }
 
 const commonMenu = (): MenuItem[] => [
@@ -577,6 +634,7 @@ function toast(text: string) {
 
 function render() {
   document.documentElement.classList.toggle('glass-dark', state.settings.glass === 'dark');
+  document.documentElement.style.setProperty('--accent', state.accent || '#0078d4');
   document.documentElement.classList.toggle('no-labels', !state.settings.labels);
   document.documentElement.classList.toggle('locked', state.settings.lock);
   const mine = state.widgets.filter((w) => effectiveDisplay(w) === displayId);
@@ -591,6 +649,8 @@ function render() {
       views.set(w.id, w.type === 'clock' ? new ClockWidgetView(w) : new FolderView(w));
     }
   }
+  for (const id of [...selected]) if (!views.has(id)) selected.delete(id);
+  for (const [id, v] of views) v.el.classList.toggle('selected', selected.has(id));
   // an open folder follows changes (items added, renamed elsewhere)
   if (openState) {
     const f = mine.find((w) => w.id === openState!.f.id) as FolderWidget | undefined;
@@ -614,7 +674,14 @@ function command(c: DeskCommand) {
 }
 
 (async () => {
-  api.onWall((w: Wall) => applyWall(w));
+  // the wallpaper as processed last time: the glass is there with the first frame
+  const cached = applyCachedWall(displayId);
+  const reveal = () => { document.body.classList.remove('starting'); reportRects(); };
+  setTimeout(reveal, 700);
+  cached.then(() => { if (hasSource()) reveal(); });
+  api.onWall((w: Wall) => cached.then(() => applyWall(w, displayId)).then(reveal));
+  api.onMarquee(onMarquee);
+  (window as unknown as { facetDebug: object }).facetDebug = { marquee: onMarquee, selected }; // for tests
   api.onState((s: State) => { state = s; render(); });
   api.onCommand((c) => { if (c.kind !== 'organize') command(c); });
   const init = await api.init();
@@ -622,5 +689,6 @@ function command(c: DeskCommand) {
   display = init.display;
   void display;
   render();
-  applyWall(init.wall);
+  await cached;
+  applyWall(init.wall, displayId).then(() => { if (init.wall) reveal(); });
 })();
