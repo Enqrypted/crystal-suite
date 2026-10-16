@@ -41,16 +41,16 @@
     {
       "id": "facet",
       "name": "Facet",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "description": "Desktop folders & widgets",
       "badge": "Fc",
       "color": "#5ce1c6",
       "bg": "#00302a",
-      "url": "https://github.com/Enqrypted/crystal-suite/releases/download/facet-v0.1.2/facet-0.1.2.zip",
-      "size": 75362,
-      "sha256": "697f5f8fe042991f1e72fb05592f82ce819ea28a97b40047b601b3132e290e8d",
+      "url": "https://github.com/Enqrypted/crystal-suite/releases/download/facet-v0.1.3/facet-0.1.3.zip",
+      "size": 80369,
+      "sha256": "1aa65be2fb41f0df0f0fdf2d02e1e3c9b0bd2b93cc3ff441744afdbb79015ee3",
       "minLauncher": "0.2.0",
-      "notes": "Liquid glass: folders, panels, the clock and menus are now clear glass over your wallpaper, bent at the edges with a bright rim highlight and a soft light that follows the pointer, with springier animations. The Dark glass setting applies to folders too."
+      "notes": "Hidden desktop icons now only stay hidden while Facet runs: they come back when you quit it (even after a crash), and dragging on the desktop draws a selection box again, which also selects folders and widgets so you can move them together. Facet also starts the moment you sign in (Windows holds ordinary startup programs back for a while), and its glass shows up together with the widgets."
     }
   ]
 }
