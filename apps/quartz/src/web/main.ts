@@ -2,7 +2,7 @@
 // start screen (open, recent files, common tasks) when nothing is open.
 import 'pdfjs-dist/legacy/web/pdf_viewer.css';
 import './styles.css';
-import { DocTab, HIGHLIGHT_COLORS, type Tool } from './doc';
+import { DocTab, HIGHLIGHT_COLORS, type ParamKind, type Tool } from './doc';
 import { Sidebar } from './sidebar';
 import { organize } from './organize';
 import { signDialog } from './sign';
@@ -218,6 +218,7 @@ function openNew(bytes: Uint8Array, name: string, background = false) {
 async function addTab(bytes: Uint8Array, path: string | null, name?: string, opts: { unsaved?: boolean; background?: boolean } = {}): Promise<DocTab | null> {
   const t = new DocTab(bytes, path, name);
   t.askPassword = (wrong) => askPassword(t.name, wrong);
+  t.defaults = savedParams;
   t.onChange = () => { if (t === active) refresh(); else renderTabs(); };
   t.el.tabIndex = -1;
   t.el.classList.add('loading');
@@ -238,7 +239,6 @@ async function addTab(bytes: Uint8Array, path: string | null, name?: string, opt
     return null;
   }
   t.el.classList.remove('loading');
-  applyDefaults(t);
   if (opts.unsaved) t.pagesChanged = true;
   wireViewer(t);
   if (t.path) native.addRecent({ path: t.path, name: t.name, pages: t.pageCount }).then(loadRecent);
@@ -274,6 +274,7 @@ function cycleTab(dir: number) {
 }
 
 async function closeTab(t: DocTab): Promise<boolean> {
+  if (t.pdf) t.commitEditing();
   if (t.modified) {
     activate(t);
     const v = await modal('Save changes?', h('div', { class: 'msg' }, `Do you want to save your changes to ${t.name}?`), [
@@ -293,6 +294,7 @@ async function closeTab(t: DocTab): Promise<boolean> {
 
 async function save(t: DocTab | null = active, as = false): Promise<boolean> {
   if (!t?.pdf) return false;
+  t.commitEditing(); // a drawing or text box still being edited counts as a change
   if (!as && t.path && !t.modified) { toast('No changes to save'); return true; }
   let target = t.path;
   if (as || !target) {
@@ -329,20 +331,17 @@ function setTool(tool: Tool) {
   if (tool !== 'select' && tool !== 'hand') getSelection()?.removeAllRanges();
 }
 
-function applyDefaults(t: DocTab) {
-  try {
-    t.setParam('inkColor', settings.inkColor);
-    t.setParam('inkThickness', settings.inkThickness);
-    t.setParam('inkOpacity', settings.inkOpacity);
-    t.setParam('textColor', settings.textColor);
-    t.setParam('textSize', settings.textSize);
-    t.setParam('highlightColor', settings.highlightColor);
-  } catch { /* editor not available for this document */ }
-}
+const PARAMS: ParamKind[] = ['inkColor', 'inkThickness', 'inkOpacity', 'textColor', 'textSize', 'highlightColor'];
+/** New annotations in every document get the saved colours and sizes. */
+const savedParams = () => Object.fromEntries(PARAMS.map((k) => [k, settings[k]]));
 
-function setParam(kind: 'inkColor' | 'inkThickness' | 'inkOpacity' | 'textColor' | 'textSize' | 'highlightColor', value: string | number) {
-  (settings as Record<string, unknown>)[kind] = value;
-  persist();
+/** A colour or size from the options bar: it changes the selected annotation if there is one, otherwise
+ *  what new ones get (remembered for next time). */
+function setParam(kind: ParamKind, value: string | number) {
+  if (!active?.hasSelection) {
+    (settings as Record<string, unknown>)[kind] = value;
+    persist();
+  }
   try { active?.setParam(kind, value); } catch { /* ignore */ }
 }
 
@@ -577,54 +576,72 @@ function renderTabs() {
 }
 
 let optFor = '';
+/** Keep the options bar's controls showing the selected annotation's colour and size (or the defaults). */
+let optSync: (() => void)[] = [];
+/** The value the options bar shows: the selected annotation's, else what new ones get. */
+const current = (kind: ParamKind) => (active?.hasSelection ? active.editorParams[kind] : undefined) ?? settings[kind];
 function renderOptbar() {
   const t = active;
   const tool = t?.pdf && !app.classList.contains('organizing') ? t.tool : null;
   const show = tool === 'highlight' || tool === 'draw' || tool === 'text' || tool === 'image';
   optbar.hidden = !show;
-  if (!show || optFor === tool) return;
+  if (!show) return;
+  if (optFor === tool) { optSync.forEach((f) => f()); return; }
   optFor = tool!;
+  optSync = [];
   clear(optbar);
-  const swatches = (colors: string[], current: () => string, pick: (c: string) => void, titles?: string[]) => {
+  const swatches = (kind: ParamKind, colors: string[], titles?: string[]) => {
     const wrap = h('div', { class: 'swatches' });
-    const mark = () => wrap.querySelectorAll<HTMLElement>('.sw').forEach((b) => b.classList.toggle('on', b.dataset.c!.toLowerCase() === current().toLowerCase()));
+    const mark = () => wrap.querySelectorAll<HTMLElement>('.sw').forEach((b) => b.classList.toggle('on', b.dataset.c!.toLowerCase() === String(current(kind)).toLowerCase()));
     colors.forEach((c, i) => {
       const b = h('button', { class: 'sw', type: 'button', 'data-c': c, title: titles?.[i] ?? c, style: `--c:${c}` });
-      b.addEventListener('click', () => { pick(c); mark(); });
+      b.addEventListener('click', () => { setParam(kind, c); mark(); });
       wrap.append(b);
     });
+    optSync.push(mark);
     mark();
     return wrap;
   };
-  const custom = (current: () => string, pick: (c: string) => void) => {
-    const inp = h('input', { type: 'color', value: current(), title: 'Any colour' }) as HTMLInputElement;
-    inp.addEventListener('input', () => pick(inp.value));
+  const custom = (kind: ParamKind) => {
+    const inp = h('input', { type: 'color', value: String(current(kind)), title: 'Any colour' }) as HTMLInputElement;
+    inp.addEventListener('input', () => setParam(kind, inp.value));
+    optSync.push(() => { if (document.activeElement !== inp && /^#[0-9a-f]{6}$/i.test(String(current(kind)))) inp.value = String(current(kind)); });
     return inp;
   };
-  const slider = (label: string, min: number, max: number, step: number, value: number, fmt: (v: number) => string, set: (v: number) => void) => {
-    const out = h('span', { class: 'sl-val' }, fmt(value));
-    const r = h('input', { type: 'range', min: String(min), max: String(max), step: String(step), value: String(value) }) as HTMLInputElement;
-    r.addEventListener('input', () => { out.textContent = fmt(Number(r.value)); set(Number(r.value)); });
+  const slider = (kind: ParamKind, label: string, min: number, max: number, step: number, scale: number, fmt: (v: number) => string) => {
+    const value = () => Math.round(Number(current(kind)) * scale);
+    const out = h('span', { class: 'sl-val' }, fmt(value()));
+    const r = h('input', { type: 'range', min: String(min), max: String(max), step: String(step), value: String(value()) }) as HTMLInputElement;
+    r.addEventListener('input', () => { out.textContent = fmt(Number(r.value)); setParam(kind, Number(r.value) / scale); });
+    optSync.push(() => { if (document.activeElement !== r) { r.value = String(value()); out.textContent = fmt(value()); } });
     return h('label', { class: 'opt' }, h('span', { class: 'opt-l' }, label), r, out);
   };
   const hint = (s: string) => h('span', { class: 'opt-hint' }, s);
   if (tool === 'highlight') {
     optbar.append(h('span', { class: 'opt-l' }, 'Colour'),
-      swatches(HL_COLORS.map(([, c]) => c), () => settings.highlightColor, (c) => setParam('highlightColor', c), HL_COLORS.map(([n]) => n[0].toUpperCase() + n.slice(1))),
+      swatches('highlightColor', HL_COLORS.map(([, c]) => c), HL_COLORS.map(([n]) => n[0].toUpperCase() + n.slice(1))),
       hint('Select text to highlight it, or drag across any part of the page'));
   } else if (tool === 'draw') {
     optbar.append(h('span', { class: 'opt-l' }, 'Colour'),
-      swatches(INK_COLORS, () => settings.inkColor, (c) => setParam('inkColor', c)), custom(() => settings.inkColor, (c) => setParam('inkColor', c)),
-      slider('Size', 1, 20, 1, settings.inkThickness, (v) => `${v}`, (v) => setParam('inkThickness', v)),
-      slider('Opacity', 10, 100, 5, Math.round(settings.inkOpacity * 100), (v) => `${v}%`, (v) => setParam('inkOpacity', v / 100)),
+      swatches('inkColor', INK_COLORS), custom('inkColor'),
+      slider('inkThickness', 'Size', 1, 20, 1, 1, (v) => `${v}`),
+      slider('inkOpacity', 'Opacity', 10, 100, 5, 100, (v) => `${v}%`),
       hint('Drag on the page to draw'));
   } else if (tool === 'text') {
-    const size = h('select', {}, ...TEXT_SIZES.map((s) => h('option', { value: String(s), selected: s === settings.textSize }, `${s} pt`))) as HTMLSelectElement;
+    const size = h('select', { title: 'Text size (or drag the corner of a selected text box)' }) as HTMLSelectElement;
+    const fill = () => {
+      const now = Math.round(Number(current('textSize')));
+      const sizes = TEXT_SIZES.includes(now) ? TEXT_SIZES : [...TEXT_SIZES, now].sort((a, b) => a - b);
+      if (size.options.length !== sizes.length) size.replaceChildren(...sizes.map((s) => h('option', { value: String(s) }, `${s} pt`)));
+      if (document.activeElement !== size) size.value = String(now);
+    };
     size.addEventListener('change', () => setParam('textSize', Number(size.value)));
+    optSync.push(fill);
+    fill();
     optbar.append(h('span', { class: 'opt-l' }, 'Colour'),
-      swatches(TEXT_COLORS, () => settings.textColor, (c) => setParam('textColor', c)), custom(() => settings.textColor, (c) => setParam('textColor', c)),
+      swatches('textColor', TEXT_COLORS), custom('textColor'),
       h('label', { class: 'opt' }, h('span', { class: 'opt-l' }, 'Size'), size),
-      hint('Click where the text goes · click outside to finish'));
+      hint('Click where the text goes · drag a selected box’s corner to resize the text'));
   } else {
     const more = h('button', { class: 'small-btn', type: 'button' }, 'Add another image…');
     more.addEventListener('click', () => addImage());

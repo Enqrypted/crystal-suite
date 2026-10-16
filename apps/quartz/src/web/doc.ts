@@ -6,6 +6,7 @@ import { h } from './ui/dom';
 import { baseName } from './native';
 
 export type Tool = 'select' | 'hand' | 'highlight' | 'draw' | 'text' | 'image';
+export type ParamKind = 'inkColor' | 'inkThickness' | 'inkOpacity' | 'textColor' | 'textSize' | 'highlightColor' | 'highlightThickness';
 
 export const HIGHLIGHT_COLORS = 'yellow=#FFF16B,green=#7CF2B0,blue=#8FD3FF,pink=#FFB3DA,orange=#FFB061';
 const ZOOMS = [0.1, 0.25, 0.33, 0.5, 0.67, 0.75, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4, 5, 6.4];
@@ -13,6 +14,13 @@ const MODES: Record<Tool, number> = {
   select: AnnotationEditorType.NONE, hand: AnnotationEditorType.NONE, highlight: AnnotationEditorType.HIGHLIGHT,
   draw: AnnotationEditorType.INK, text: AnnotationEditorType.FREETEXT, image: AnnotationEditorType.STAMP,
 };
+
+const P = AnnotationEditorParamsType;
+const PARAM_KINDS: [ParamKind, number][] = [
+  ['inkColor', P.INK_COLOR], ['inkThickness', P.INK_THICKNESS], ['inkOpacity', P.INK_OPACITY],
+  ['textColor', P.FREETEXT_COLOR], ['textSize', P.FREETEXT_SIZE],
+  ['highlightColor', P.HIGHLIGHT_COLOR], ['highlightThickness', P.HIGHLIGHT_THICKNESS],
+];
 
 type ViewerMod = Awaited<typeof viewerLib>;
 let seq = 0;
@@ -45,6 +53,14 @@ export class DocTab {
   private future: Uint8Array[] = [];
   password: string | undefined;
   find: FindResult = { current: 0, total: 0, state: '' };
+  /** An annotation is selected (colour and size changes then apply to it). */
+  hasSelection = false;
+  /** What PDF.js reports for the selected annotation, or the current tool's defaults. */
+  editorParams: Partial<Record<ParamKind, string | number>> = {};
+  /** The colours and sizes new annotations get (the app's saved settings). */
+  defaults: () => Partial<Record<ParamKind, string | number>> = () => ({});
+  /** PDF.js takes them only once a page's annotation layer exists (again after every reload). */
+  private editorReady = false;
   /** Something the toolbar shows changed (page, zoom, tool, modified state, find results). */
   onChange: () => void = () => {};
   askPassword: (wrong: boolean) => Promise<string | null> = async () => null;
@@ -97,12 +113,30 @@ export class DocTab {
       this.readyResolve();
       this.onChange();
     });
+    bus.on('annotationeditorlayerrendered', () => {
+      if (this.editorReady) return;
+      this.editorReady = true;
+      for (const [kind, value] of Object.entries(this.defaults())) {
+        if (value !== undefined && PARAM_KINDS.some(([k]) => k === kind)) this.setParam(kind as ParamKind, value);
+      }
+    });
     bus.on('pagechanging', () => this.onChange());
     bus.on('scalechanging', () => this.onChange());
     bus.on('annotationeditoruimanager', (e: { uiManager: unknown }) => { this.uiManager = e.uiManager; });
-    bus.on('editingstateschanged', (e: { details: { hasSomethingToUndo?: boolean; hasSomethingToRedo?: boolean } }) => {
+    bus.on('editingstateschanged', (e: { details: { hasSomethingToUndo?: boolean; hasSomethingToRedo?: boolean; hasSelectedEditor?: boolean } }) => {
       if (e.details.hasSomethingToUndo !== undefined) this.canUndoEdit = e.details.hasSomethingToUndo;
       if (e.details.hasSomethingToRedo !== undefined) this.canRedoEdit = e.details.hasSomethingToRedo;
+      if (e.details.hasSelectedEditor !== undefined) this.hasSelection = e.details.hasSelectedEditor;
+      this.syncTextHandle();
+      this.onChange();
+    });
+    // the colour/size of the selected annotation (or the tool's defaults), for the options bar
+    bus.on('annotationeditorparamschanged', (e: { details: [number, unknown][] }) => {
+      for (const [type, value] of e.details) {
+        const kind = PARAM_KINDS.find(([, t]) => t === type)?.[0];
+        if (kind) this.editorParams[kind] = value as string | number;
+      }
+      this.syncTextHandle();
       this.onChange();
     });
     // PDF.js asks the app to switch tools (adding a picture moves to its image mode) and switches itself;
@@ -143,6 +177,7 @@ export class DocTab {
   /** Opens bytes in this tab's viewer (PDF.js takes ownership of the buffer it is given, so it gets a copy). */
   private async load(bytes: Uint8Array) {
     this.ready = new Promise((r) => { this.readyResolve = r; });
+    this.editorReady = false;
     const task = openDocument(bytes.slice(), this.password);
     task.onPassword = async (update: (pw: string) => void, reason: number) => {
       const pw = await this.askPassword(reason === PasswordResponses.INCORRECT_PASSWORD);
@@ -163,9 +198,17 @@ export class DocTab {
     await this.ready;
   }
 
+  /** Finishes what is being edited: the text box being typed in, and a drawing still in progress (PDF.js
+   *  keeps a drawing open until the tool changes). */
+  commitEditing() {
+    const ui = this.uiManager;
+    if (ui?.endCurrentEditing) ui.endCurrentEditing();
+    else ui?.commitOrRemove?.();
+  }
+
   /** The document as it should be saved: PDF.js writes the annotation and form edits into it. */
   async currentBytes(): Promise<Uint8Array> {
-    this.uiManager?.commitOrRemove?.();
+    this.commitEditing();
     if (this.editsChanged && this.pdf.annotationStorage.size > 0) return this.pdf.saveDocument();
     return this.bytes;
   }
@@ -255,10 +298,58 @@ export class DocTab {
     try { this.viewer.annotationEditorMode = { mode } as never; } catch { /* not ready yet */ }
   }
 
-  setParam(kind: 'inkColor' | 'inkThickness' | 'inkOpacity' | 'textColor' | 'textSize' | 'highlightColor' | 'highlightThickness', value: string | number) {
-    const P = AnnotationEditorParamsType;
-    const type = { inkColor: P.INK_COLOR, inkThickness: P.INK_THICKNESS, inkOpacity: P.INK_OPACITY, textColor: P.FREETEXT_COLOR, textSize: P.FREETEXT_SIZE, highlightColor: P.HIGHLIGHT_COLOR, highlightThickness: P.HIGHLIGHT_THICKNESS }[kind];
-    (this.viewer as unknown as { annotationEditorParams: unknown }).annotationEditorParams = { type, value };
+  /** Sets a colour or size: on the selected annotations if there are any, otherwise for new ones. */
+  setParam(kind: ParamKind, value: string | number) {
+    const type = PARAM_KINDS.find(([k]) => k === kind)![1];
+    this.eventBus.dispatch('switchannotationeditorparams', { source: this, type, value });
+    this.editorParams[kind] = value;
+  }
+
+  // ---------- resizing text boxes ----------
+  // PDF.js sizes a text box by its font size and gives it no handles; a selected text box gets a corner
+  // handle here that scales the text as it is dragged (one undo step per drag).
+  private textHandle: HTMLElement | null = null;
+
+  private syncTextHandle() {
+    if (!this.textHandle) {
+      this.textHandle = h('div', { class: 'qz-text-size', title: 'Drag to make the text bigger or smaller' });
+      this.textHandle.addEventListener('pointerdown', (e) => this.resizeText(e));
+    }
+    const selected = [...this.el.querySelectorAll<HTMLElement>('.freeTextEditor.selectedEditor')];
+    const box = this.hasSelection && selected.length === 1 ? selected[0] : null;
+    if (!box) this.textHandle.remove();
+    else if (this.textHandle.parentElement !== box) box.append(this.textHandle);
+  }
+
+  private resizeText(e: PointerEvent) {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const box = this.textHandle?.parentElement;
+    const editor = box && this.uiManager?.getEditor?.(box.id);
+    if (!box || !editor) return;
+    const start = Number((editor.propertiesToUpdate as [number, unknown][]).find(([t]) => t === P.FREETEXT_SIZE)?.[1]) || 10;
+    const r = box.getBoundingClientRect();
+    const sx = e.clientX, sy = e.clientY;
+    let last = start;
+    this.textHandle!.setPointerCapture(e.pointerId);
+    const move = (m: PointerEvent) => {
+      // follow whichever way the corner moved more, relative to the box
+      const f = Math.max((r.width + m.clientX - sx) / r.width, (r.height + m.clientY - sy) / r.height);
+      const size = Math.round(Math.min(200, Math.max(4, start * f)));
+      if (size !== last) { last = size; editor.updateParams(P.FREETEXT_SIZE, size); }
+    };
+    const up = () => {
+      this.textHandle?.removeEventListener('pointermove', move);
+      this.textHandle?.removeEventListener('pointerup', up);
+      this.textHandle?.removeEventListener('pointercancel', up);
+      this.editorParams.textSize = last;
+      this.syncTextHandle();
+      this.onChange();
+    };
+    this.textHandle!.addEventListener('pointermove', move);
+    this.textHandle!.addEventListener('pointerup', up);
+    this.textHandle!.addEventListener('pointercancel', up);
   }
 
   /** Adds an image or signature to the current page (PDF.js's image editor: move and resize it after).

@@ -53,7 +53,7 @@ export async function withProgress<T>(title: string, work: (step: (done: number,
 }
 
 export async function printDoc(tab: DocTab) {
-  tab.uiManager?.commitOrRemove?.();
+  tab.commitEditing();
   const storage = (tab.pdf.annotationStorage as unknown as { print: unknown }).print;
   const total = tab.pageCount;
   // ~150 dpi keeps big documents printable; short ones get sharper output

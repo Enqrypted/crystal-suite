@@ -138,6 +138,8 @@ input[type=color] { width: 30px; height: 24px; border: 1px solid var(--line-2); 
 .doc-view .editToolbar .altText, .doc-view .editToolbar .altText + .divider { display: none !important; }
 /* the app chrome is not selectable, the document text is */
 .doc-view .textLayer { -webkit-user-select: text; user-select: text; }
+/* corner handle on a selected text box: drag to scale the text */
+.doc-view .qz-text-size { position: absolute; right: -7px; bottom: -7px; width: 12px; height: 12px; border-radius: 3px; background: var(--accent); border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, .45); cursor: nwse-resize; z-index: 3; touch-action: none; }
 /* the text selection, find matches and editor outlines keep PDF.js's look */
 .doc-view .textLayer ::selection { background: rgba(255, 122, 107, .35); }
 
