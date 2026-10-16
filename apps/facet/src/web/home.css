@@ -129,3 +129,17 @@ body.home ::selection { background: rgba(10, 132, 255, .45); }
 .more { color: var(--dim); font-size: 12px; margin-left: 4px; }
 .sheet > .toggle { height: 36px; }
 .sheet .pick-grid { max-height: 55vh; overflow-y: auto; }
+
+/* the "Add widget" menu */
+.home .btn .chev { width: 12px; height: 12px; margin-left: -2px; opacity: .85; }
+.add-menu { position: fixed; z-index: 120; width: 290px; padding: 6px; border-radius: 16px; background: #24242a; border: 1px solid #36363f; box-shadow: 0 20px 50px rgba(0, 0, 0, .5); animation: fade .12s ease; }
+.add-item { display: flex; align-items: center; gap: 12px; width: 100%; padding: 9px 10px; border: 0; border-radius: 11px; background: none; color: var(--text); text-align: left; font: inherit; }
+.add-item:hover { background: rgba(255, 255, 255, .07); }
+.add-ic { width: 36px; height: 36px; flex: none; border-radius: 10px; display: grid; place-items: center; background: #31313a; color: #fff; }
+.add-ic svg { width: 20px; height: 20px; }
+.add-text { display: flex; flex-direction: column; min-width: 0; }
+.add-text b { font-weight: 600; }
+.add-text span { color: var(--dim); font-size: 12px; }
+.stage.tall { height: 420px; }
+@media (min-width: 1280px) { .stage.tall { height: 520px; } }
+.card .hint { margin: 0; color: var(--faint); font-size: 12px; line-height: 1.45; }

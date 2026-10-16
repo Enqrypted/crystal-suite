@@ -1,11 +1,15 @@
 // The desktop layer: one transparent page per display showing that display's widgets. The window is
 // click-through except over what this page reports as hit areas (see reportRects).
-import type { ClockWidget, DeskCommand, DesktopEntry, DisplayInfo, FolderItem, FolderWidget, HitRect, State, Wall, Widget, Category } from '../shared/types';
+import type { ControlWidget, MediaWidget, RecentWidget, ClockWidget, DeskCommand, DesktopEntry, DisplayInfo, FolderItem, FolderWidget, HitRect, State, Wall, Widget, Category } from '../shared/types';
 import { api } from './lib/api';
 import { h, clamp, clear } from './lib/dom';
 import { applyWall, applyCachedWall, alignGlass } from './lib/glass';
 import { ClockView } from './lib/clock';
-import { clockEditor, folderEditor } from './lib/editors';
+import { editorFor, TITLES } from './lib/editors';
+import { initLive } from './lib/live';
+import { MediaCard } from './widgets/media';
+import { ControlCenter } from './widgets/control';
+import { RecentList } from './widgets/recent';
 import { closeOverlays, ICONS, itemImage, menu, modal, popover, type MenuItem } from './lib/ui';
 import { glass, unglass, refreshWithin, hasSource } from './lib/liquid';
 
@@ -66,7 +70,7 @@ abstract class View {
 /** Drag to move (unless locked); a press without movement is a click. */
 function movable(view: View, handle: HTMLElement) {
   handle.addEventListener('pointerdown', (e) => {
-    if (e.button !== 0 || (e.target as HTMLElement).closest('[data-nodrag]')) return;
+    if (e.button !== 0 || (e.target as HTMLElement).closest('[data-nodrag], button, input, .vslider, .mc-bar')) return;
     const sx = e.clientX, sy = e.clientY;
     // a selected widget drags the whole selection along
     const group = selected.has(view.w.id) && selected.size > 1 ? [...selected].map((id) => views.get(id)!).filter(Boolean) : [view];
@@ -164,8 +168,46 @@ const commonMenu = (): MenuItem[] => [
   { sep: true },
   { label: 'New Folder', icon: 'plus', run: () => api.add('folder') },
   { label: 'New Clock', icon: 'clock', run: () => api.add('clock') },
+  { label: 'New Spotify Widget', icon: 'plus', run: () => api.add('media') },
+  { label: 'New Control Center', icon: 'plus', run: () => api.add('control') },
+  { label: 'New Recent Folders', icon: 'plus', run: () => api.add('recent') },
   { label: 'Facet…', icon: 'gear', run: () => api.home() },
 ];
+
+/** Spotify, Control Center and Recent folders: a card that follows live data. */
+class LiveView extends View {
+  private card: MediaCard | ControlCenter | RecentList;
+  private config = '';
+  constructor(w: MediaWidget | ControlWidget | RecentWidget) {
+    super(w);
+    this.card = w.type === 'media' ? new MediaCard(w) : w.type === 'control' ? new ControlCenter(w) : new RecentList(w, () => state.settings.glass === 'dark');
+    this.el = h('div', { class: `widget live ${w.type}` }, this.card.el);
+    movable(this, this.el);
+    layer.append(this.el);
+    this.update(w);
+  }
+  update(w: Widget) {
+    this.w = w;
+    // rebuilding is only needed when the widget's own settings change (not when it moves)
+    const { x: _x, y: _y, display: _d, ...rest } = w;
+    const config = JSON.stringify([rest, state.settings.glass]);
+    if (config !== this.config) { this.config = config; (this.card as { set(w: Widget): void }).set(w); }
+    this.place();
+    reportRects();
+  }
+  destroy() { this.card.destroy(); super.destroy(); }
+  menu(): MenuItem[] {
+    const extra: MenuItem[] = this.w.type === 'media' ? [{ label: 'Open Spotify', icon: 'open', run: () => api.launch('spotify') }]
+      : this.w.type === 'recent' ? [{ label: 'Open File Explorer', icon: 'open', run: () => api.open(this.recentHome()) }] : [];
+    return [
+      ...extra,
+      { label: 'Customize…', icon: 'edit', run: () => customize(this) },
+      { label: `Remove ${TITLES[this.w.type]}`, icon: 'trash', danger: true, run: () => api.remove(this.w.id) },
+      ...commonMenu(),
+    ];
+  }
+  private recentHome() { return 'shell:::{679f85cb-0220-4080-b29b-5540cc05aab6}'; }
+}
 
 class ClockWidgetView extends View {
   private clock: ClockView;
@@ -603,19 +645,14 @@ async function pickFromDesktop(f: FolderWidget) {
 function customize(view: View) {
   const w = structuredClone(view.w) as Widget;
   const save = () => api.put(w);
-  let body: HTMLElement;
-  if (w.type === 'clock') {
-    body = clockEditor(w, () => { view.update({ ...w }); save(); });
-  } else {
-    let typing = false;
-    body = folderEditor(w, () => { view.update({ ...w }); save(); }, {
-      onNameFocus: (on) => {
-        if (on && !typing) { typing = true; api.keyboard(true).then(() => setTimeout(() => body.querySelector<HTMLInputElement>('input.text')?.focus(), 30)); }
-        if (!on && typing) { typing = false; api.keyboard(false); }
-      },
-    });
-  }
-  popover(view.el.getBoundingClientRect(), w.type === 'clock' ? 'Clock' : 'Folder', body, () => { if (w.type === 'folder') api.keyboard(false); });
+  let typing = false;
+  const body: HTMLElement = editorFor(w, () => { view.update({ ...w } as Widget); save(); }, {
+    onNameFocus: (on) => {
+      if (on && !typing) { typing = true; api.keyboard(true).then(() => setTimeout(() => body.querySelector<HTMLInputElement>('input.text')?.focus(), 30)); }
+      if (!on && typing) { typing = false; api.keyboard(false); }
+    },
+  });
+  popover(view.el.getBoundingClientRect(), TITLES[w.type], body, () => { if (w.type === 'folder') api.keyboard(false); });
 }
 
 // ---------- toast ----------
@@ -646,7 +683,7 @@ function render() {
       if (!v.el.classList.contains('moving')) v.update(w);
     } else {
       v?.destroy();
-      views.set(w.id, w.type === 'clock' ? new ClockWidgetView(w) : new FolderView(w));
+      views.set(w.id, w.type === 'clock' ? new ClockWidgetView(w) : w.type === 'folder' ? new FolderView(w) : new LiveView(w));
     }
   }
   for (const id of [...selected]) if (!views.has(id)) selected.delete(id);
@@ -686,6 +723,7 @@ function command(c: DeskCommand) {
   api.onCommand((c) => { if (c.kind !== 'organize') command(c); });
   const init = await api.init();
   state = init.state;
+  initLive(init);
   display = init.display;
   void display;
   render();

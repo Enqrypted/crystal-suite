@@ -1,13 +1,17 @@
 // Facet's saved layout (facet.json): the widgets and settings, validated on load and on every change
 // that comes from a renderer.
 import crypto from 'crypto';
-import type { ClockWidget, FolderItem, FolderWidget, Settings, Widget } from '../shared/types';
+import type { ClockWidget, ControlWidget, FolderItem, FolderWidget, MediaWidget, RecentWidget, Settings, Widget } from '../shared/types';
 
 export interface Layout { version: 1; widgets: Widget[]; settings: Settings }
 
 export const newId = () => crypto.randomBytes(6).toString('hex');
 
-export const DEFAULT_SETTINGS: Settings = { startup: true, lock: false, glass: 'light', labels: true, iconsHidden: false };
+export const DEFAULT_SETTINGS: Settings = { startup: true, lock: false, glass: 'light', labels: true, iconsHidden: false, dim: 100 };
+
+export const newMedia = (display: string, x: number, y: number): MediaWidget => ({ id: newId(), type: 'media', display, x, y, source: 'spotify', size: 'm', bg: 'art' });
+export const newControl = (display: string, x: number, y: number): ControlWidget => ({ id: newId(), type: 'control', display, x, y, size: 'm', hour24: false });
+export const newRecent = (display: string, x: number, y: number): RecentWidget => ({ id: newId(), type: 'recent', display, x, y, count: 6, layout: 'list', size: 'm' });
 
 export function newFolder(name: string, display: string, x: number, y: number, items: FolderItem[] = []): FolderWidget {
   return { id: newId(), type: 'folder', display, x, y, name, items, style: 'tile', size: 'm', cols: 4, rows: 3, tint: '' };
@@ -54,6 +58,13 @@ export function cleanWidget(v: any): Widget | null {
       bg: pick(v.bg, ['none', 'glass', 'dark'] as const, d.bg), shadow: bool(v.shadow, d.shadow), blink: bool(v.blink, d.blink),
     };
   }
+  if (v.type === 'media') {
+    return { ...base, type: 'media', source: pick(v.source, ['spotify', 'any'] as const, 'spotify'), size: pick(v.size, ['s', 'm', 'l'] as const, 'm'), bg: pick(v.bg, ['art', 'glass', 'dark'] as const, 'art') };
+  }
+  if (v.type === 'control') return { ...base, type: 'control', size: pick(v.size, ['s', 'm', 'l'] as const, 'm'), hour24: bool(v.hour24, false) };
+  if (v.type === 'recent') {
+    return { ...base, type: 'recent', count: Math.round(num(v.count, 3, 16, 6)), layout: pick(v.layout, ['list', 'grid'] as const, 'list'), size: pick(v.size, ['s', 'm', 'l'] as const, 'm') };
+  }
   return null;
 }
 
@@ -62,7 +73,7 @@ export function cleanSettings(v: any): Settings {
   v = v && typeof v === 'object' ? v : {};
   return {
     startup: bool(v.startup, d.startup), lock: bool(v.lock, d.lock), glass: pick(v.glass, ['light', 'dark'] as const, d.glass),
-    labels: bool(v.labels, d.labels), iconsHidden: bool(v.iconsHidden, d.iconsHidden),
+    labels: bool(v.labels, d.labels), iconsHidden: bool(v.iconsHidden, d.iconsHidden), dim: Math.round(num(v.dim, 15, 100, d.dim)),
   };
 }
 

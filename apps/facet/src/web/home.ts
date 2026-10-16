@@ -1,9 +1,14 @@
 // The Facet window: your widgets with live editors, settings, and Organize Desktop.
-import type { Category, ClockWidget, DesktopEntry, FolderWidget, OrganizeGroup, State, Widget } from '../shared/types';
+import type { Category, ClockWidget, ControlWidget, DesktopEntry, FolderWidget, MediaWidget, OrganizeGroup, RecentWidget, State, Widget, WidgetType } from '../shared/types';
 import { api } from './lib/api';
 import { h, clear } from './lib/dom';
 import { ClockView, FACES } from './lib/clock';
-import { clockEditor, folderEditor } from './lib/editors';
+import { clockEditor, editorFor, folderEditor, TITLES } from './lib/editors';
+import { initLive, live } from './lib/live';
+import { G } from './lib/glyphs';
+import { MediaCard } from './widgets/media';
+import { ControlCenter } from './widgets/control';
+import { RecentList } from './widgets/recent';
 import { toggle, segmented } from './lib/controls';
 import { ICONS, itemImage } from './lib/ui';
 import { glass, unglass, setSource } from './lib/liquid';
@@ -13,13 +18,24 @@ let selected = 'settings';
 const listEl = document.getElementById('list')!;
 const detailEl = document.getElementById('detail')!;
 let detailFor = '';
-let preview: ClockView | null = null;
+let preview: { destroy(): void } | null = null;
 let stageObserver: ResizeObserver | null = null;
 
-const describe = (w: Widget) => w.type === 'clock'
-  ? `Clock · ${FACES.find((f) => f.id === w.face)?.label ?? ''}`
-  : `${w.style === 'panel' ? 'Panel' : 'Folder'} · ${w.items.length} item${w.items.length === 1 ? '' : 's'}`;
-const titleOf = (w: Widget) => (w.type === 'clock' ? 'Clock' : w.name);
+const SIZE: Record<string, string> = { s: 'Small', m: 'Medium', l: 'Large' };
+function describe(w: Widget) {
+  switch (w.type) {
+    case 'clock': return `Clock · ${FACES.find((f) => f.id === w.face)?.label ?? ''}`;
+    case 'folder': return `${w.style === 'panel' ? 'Panel' : 'Folder'} · ${w.items.length} item${w.items.length === 1 ? '' : 's'}`;
+    case 'media': {
+      const t = w.source === 'spotify' ? live.media.spotify : live.media.current;
+      return t ? `${t.status === 'Playing' ? 'Playing' : 'Paused'} · ${t.title}` : w.source === 'spotify' ? 'Spotify · not playing' : 'Now playing';
+    }
+    case 'control': return `${SIZE[w.size]} · brightness, volume, toggles`;
+    case 'recent': return `${w.count} folders · ${w.layout === 'grid' ? 'icons' : 'list'}`;
+  }
+}
+const titleOf = (w: Widget) => (w.type === 'folder' ? w.name : TITLES[w.type]);
+const ROW_ICON: Record<string, string> = { clock: ICONS.clock, media: G.note, control: G.gear, recent: G.recent };
 
 function renderList() {
   clear(listEl);
@@ -29,7 +45,7 @@ function renderList() {
   for (const w of state.widgets) {
     const disp = state.displays.find((d) => d.id === w.display);
     const icon = h('div', { class: `row-icon ${w.type}` });
-    if (w.type === 'clock') icon.innerHTML = ICONS.clock;
+    if (w.type !== 'folder') icon.innerHTML = ROW_ICON[w.type];
     else {
       const mini = h('div', { class: 'row-mini' });
       for (let i = 0; i < 4; i++) mini.append(w.items[i] ? itemImage(w.items[i].path, 'rm') : h('div', { class: 'rm empty' }));
@@ -73,7 +89,8 @@ function renderDetail(force = false) {
   clear(detailEl);
   if (!w) { renderSettings(); return; }
   if (w.type === 'clock') renderClock(structuredClone(w));
-  else renderFolder(structuredClone(w));
+  else if (w.type === 'folder') renderFolder(structuredClone(w));
+  else renderLive(structuredClone(w));
 }
 
 function head(title: string, sub: string, actions: HTMLElement[]) {
@@ -90,8 +107,9 @@ function removeButton(w: Widget) {
 }
 
 function renderClock(w: ClockWidget) {
-  preview = new ClockView(w);
-  const inner = h('div', { class: 'stage-inner' }, preview.el);
+  const view = new ClockView(w);
+  preview = view;
+  const inner = h('div', { class: 'stage-inner' }, view.el);
   const stage = h('div', { class: 'stage' }, inner);
   // the preview shows the clock at its real size, scaled down only when it doesn't fit
   const fit = () => {
@@ -102,16 +120,47 @@ function renderClock(w: ClockWidget) {
   };
   stageObserver = new ResizeObserver(fit);
   stageObserver.observe(stage);
-  stageObserver.observe(preview.el);
+  stageObserver.observe(view.el);
   const surface = () => {
-    preview!.el.classList.toggle('glass', w.bg !== 'none');
-    if (w.bg === 'none') unglass(preview!.el);
-    else glass(preview!.el, { dark: w.bg === 'dark' });
+    view.el.classList.toggle('glass', w.bg !== 'none');
+    if (w.bg === 'none') unglass(view.el);
+    else glass(view.el, { dark: w.bg === 'dark' });
   };
-  const editor = clockEditor(w, () => { preview!.set({ ...w }); surface(); api.put(w); });
+  const editor = clockEditor(w, () => { view.set({ ...w }); surface(); api.put(w); });
   surface();
   detailEl.append(
     head('Clock', 'Changes show on your desktop as you make them.', [removeButton(w)]),
+    h('div', { class: 'clock-layout' }, stage, h('div', { class: 'card' }, editor)),
+  );
+}
+
+const LIVE_SUB: Record<string, string> = {
+  media: 'Shows what Spotify is playing, with its controls. Changes show on your desktop as you make them.',
+  control: 'Brightness, volume, night light, Wi-Fi and Bluetooth, and a few handy buttons.',
+  recent: 'The folders you opened most recently in File Explorer, newest first.',
+};
+
+function renderLive(w: MediaWidget | ControlWidget | RecentWidget) {
+  const make = () => (w.type === 'media' ? new MediaCard({ ...w }) : w.type === 'control' ? new ControlCenter({ ...w }) : new RecentList({ ...w }, () => state.settings.glass === 'dark'));
+  let card = make();
+  const inner = h('div', { class: 'stage-inner' }, card.el);
+  const stage = h('div', { class: 'stage tall' }, inner);
+  const fit = () => {
+    paintStage(stage);
+    inner.style.transform = '';
+    const k = Math.min(1, (stage.clientWidth - 40) / Math.max(1, inner.offsetWidth), (stage.clientHeight - 40) / Math.max(1, inner.offsetHeight));
+    inner.style.transform = k < 1 ? `scale(${k})` : '';
+  };
+  stageObserver = new ResizeObserver(fit);
+  stageObserver.observe(stage);
+  stageObserver.observe(inner);
+  preview = { destroy: () => card.destroy() };
+  const editor = editorFor(w, () => {
+    (card as { set(x: Widget): void }).set({ ...w } as Widget);
+    api.put(w);
+  });
+  detailEl.append(
+    head(TITLES[w.type], LIVE_SUB[w.type], [removeButton(w)]),
     h('div', { class: 'clock-layout' }, stage, h('div', { class: 'card' }, editor)),
   );
 }
@@ -339,7 +388,30 @@ async function desktopPicker(folderId: string) {
 // ---------- header ----------
 
 document.getElementById('add-folder')!.addEventListener('click', async () => { const id = await api.add('folder'); if (id) setTimeout(() => select(id), 50); });
-document.getElementById('add-clock')!.addEventListener('click', async () => { const id = await api.add('clock'); if (id) setTimeout(() => select(id), 50); });
+const addMenuBtn = document.getElementById('add-widget')!;
+addMenuBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  document.querySelector('.add-menu')?.remove();
+  const r = addMenuBtn.getBoundingClientRect();
+  const m = h('div', { class: 'add-menu' });
+  const item = (type: WidgetType, icon: string, title: string, sub: string) => {
+    const b = h('button', { type: 'button', class: 'add-item' }, h('span', { class: 'add-ic', html: icon }), h('span', { class: 'add-text' }, h('b', { text: title }), h('span', { text: sub })));
+    b.addEventListener('click', async () => { m.remove(); const id = await api.add(type); if (id) setTimeout(() => select(id), 50); });
+    return b;
+  };
+  m.append(
+    item('clock', ICONS.clock, 'Clock', 'Minimal, card, analog or stacked'),
+    item('media', G.note, 'Spotify', 'Now playing, with controls'),
+    item('control', G.gear, 'Control Center', 'Brightness, volume, toggles'),
+    item('recent', G.recent, 'Recent folders', 'Where you were working'),
+  );
+  m.style.top = `${r.bottom + 6}px`;
+  m.style.right = `${innerWidth - r.right}px`;
+  document.body.append(m);
+  const close = () => { m.remove(); removeEventListener('pointerdown', outside); };
+  const outside = (ev: PointerEvent) => { if (!m.contains(ev.target as Node)) close(); };
+  setTimeout(() => addEventListener('pointerdown', outside), 0);
+});
 document.getElementById('organize')!.addEventListener('click', organize);
 
 (async () => {
@@ -350,6 +422,7 @@ document.getElementById('organize')!.addEventListener('click', organize);
   });
   api.onCommand((c) => { if (c.kind === 'organize') organize(); });
   const init = await api.init();
+  initLive(init);
   state = init.state;
   if (state.widgets.length && !state.widgets.some((w) => w.type === 'folder')) selected = 'settings';
   renderList();

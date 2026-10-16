@@ -84,11 +84,33 @@ static class Program
                 case "icons-visible": Send(id + "\tok\t" + (Shell.IconsVisible() ? "1" : "0")); break;
                 case "set-icons": host.Post(delegate { host.SetIcons(a[2] == "1"); Send(id + "\tok\t" + (Shell.IconsVisible() ? "1" : "0")); }); break;
                 case "logoff-keep": host.KeepHiddenAtLogoff = a[2] == "1"; Send(id + "\tok\t"); break;
+                // media (Windows' media controls), the Control Center's system state, recent folders; slow
+                // or waiting calls run on the thread pool so commands behind them aren't held up
+                case "media-watch": Media.Watch(a[2] == "1", a.Length > 3 ? a[3] : ""); Send(id + "\tok\t"); break;
+                case "media": Background(id, delegate { return Media.Command(a[2], a[3], a.Length > 4 ? a[4] : "") ? "1" : "0"; }); break;
+                case "sys-watch": SystemControls.Watch(a[2] == "1"); Send(id + "\tok\t"); break;
+                case "volume": Audio.Set(int.Parse(a[2])); SystemControls.Refresh(); Send(id + "\tok\t"); break;
+                case "mute": Audio.Mute(a[2] == "1"); SystemControls.Refresh(); Send(id + "\tok\t"); break;
+                case "nightlight": Send(id + "\tok\t" + (NightLight.Set(a[2] == "1") ? "1" : "0")); SystemControls.Refresh(); break;
+                case "theme": Background(id, delegate { Theme.Set(a[2] == "dark"); SystemControls.Refresh(); return "1"; }); break;
+                case "radio": Background(id, delegate { bool ok = Radios.Set(a[2], a[3] == "on"); SystemControls.Refresh(); return ok ? "1" : "0"; }); break;
+                case "brightness": Background(id, delegate { return Brightness.Describe(); }); break;
+                case "brightness-set": Brightness.Set(a[2], int.Parse(a[3])); Send(id + "\tok\t"); break;
+                case "recent": Background(id, delegate { return Recent.List(int.Parse(a[2])); }); break;
                 case "drag-watch": host.Post(delegate { if (a[2] == "1") DragWatcher.Start(host); else DragWatcher.Stop(); Send(id + "\tok\t"); }); break;
                 default: Send(id + "\terr\tunknown command " + cmd); break;
             }
         }
         catch (Exception e) { Send(id + "\terr\t" + OneLine(e.Message)); }
+    }
+
+    static void Background(string id, Func<string> work)
+    {
+        ThreadPool.QueueUserWorkItem(delegate
+        {
+            try { Send(id + "\tok\t" + work()); }
+            catch (Exception e) { Send(id + "\terr\t" + OneLine(e.Message)); }
+        });
     }
 
     public static IntPtr ParseHwnd(string s) { return new IntPtr(long.Parse(s)); }

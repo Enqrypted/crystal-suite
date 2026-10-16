@@ -20,15 +20,21 @@ function csc() {
 }
 
 function buildHelper() {
-  const src = path.join(APP, 'native', 'FacetHelper.cs');
+  const dir = path.join(APP, 'native');
+  const sources = fs.readdirSync(dir).filter((f) => f.endsWith('.cs')).map((f) => path.join(dir, f));
   const exe = path.join(OUT, 'FacetHelper.exe');
   const compiler = csc();
   if (!compiler) {
     if (fs.existsSync(exe)) { console.warn('Facet: no C# compiler found, keeping the existing FacetHelper.exe'); return; }
     throw new Error('FacetHelper.exe needs the .NET Framework 4 C# compiler (csc.exe), which ships with Windows.');
   }
+  // WinRT (media controls, radios, network) through the metadata every Windows 10/11 has
+  const fw = path.dirname(compiler);
+  const winmd = path.join(process.env.WINDIR || 'C:\\Windows', 'System32', 'WinMetadata');
+  const refs = ['System.Windows.Forms.dll', 'System.Drawing.dll', 'System.Management.dll', path.join(fw, 'System.Runtime.dll'),
+    ...['Foundation', 'Media', 'Devices', 'Networking', 'Storage'].map((n) => path.join(winmd, `Windows.${n}.winmd`))];
   execFileSync(compiler, ['-nologo', '-target:winexe', '-optimize+', '-platform:anycpu', `-out:${exe}`,
-    '-r:System.Windows.Forms.dll', '-r:System.Drawing.dll', src], { stdio: ['ignore', 'pipe', 'inherit'] });
+    ...refs.map((r) => `-r:${r}`), ...sources], { stdio: ['ignore', 'pipe', 'inherit'] });
 }
 
 (async () => {

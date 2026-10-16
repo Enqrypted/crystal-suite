@@ -8,6 +8,7 @@
 //  - icons (large shell icons, thumbnails and Steam artwork, cached as PNGs), the wallpaper for the
 //    frosted glass, start-with-Windows and the Windows desktop-icons toggle.
 import crypto from 'crypto';
+import os from 'os';
 import fs from 'fs';
 import path from 'path';
 import { spawn, spawnSync } from 'child_process';
@@ -16,8 +17,8 @@ import { app, BrowserWindow, dialog, Menu, nativeImage, screen, shell, systemPre
 import { Helper } from './helper';
 import { deleteTask, registerTask } from './startup';
 import { categorize, displayName, scanDesktop } from './desktop';
-import { cleanItem, cleanLayout, cleanSettings, cleanWidget, newClock, newFolder, newId, type Layout } from './layout';
-import type { DeskCommand, DisplayInfo, FolderWidget, HitRect, IconInfo, OrganizeGroup, Rect, Settings, State, Wall, Widget } from '../shared/types';
+import { cleanItem, cleanLayout, cleanSettings, cleanWidget, newClock, newControl, newFolder, newId, newMedia, newRecent, type Layout } from './layout';
+import type { DeskCommand, DisplayInfo, FolderWidget, HitRect, IconInfo, MediaState, OrganizeGroup, RecentFolder, Rect, Settings, State, SysState, Track, Wall, Widget, WidgetType } from '../shared/types';
 
 export interface Host {
   appId: string;
@@ -100,11 +101,16 @@ class Facet {
       setTimeout(() => this.applyIcons(), 1500);
       this.refreshWalls();
       this.push();
+      // a (re)started helper has no watchers yet
+      this.feeds = { media: false, sys: false, recent: false };
+      this.syncFeeds();
     };
     this.helper.onEvent = (name, data) => {
       if (name === 'wallpaper') setTimeout(() => this.refreshWalls(), 400);
       if (name === 'explorer') { this.applyIcons(); this.refreshWalls(); }
       if (name === 'drag') this.onDesktopDrag(data);
+      if (name === 'media') this.onMedia(data);
+      if (name === 'sys') this.onSys(data);
     };
   }
 
@@ -142,6 +148,8 @@ class Facet {
     this.createTray();
     systemPreferences.on('accent-color-changed', this.onAccent);
     if (!this.helper.available) this.refreshWalls();
+    this.syncFeeds();
+    this.applyDim();
   }
 
   private onAccent = () => this.push();
@@ -167,6 +175,13 @@ class Facet {
     this.tray?.destroy();
     this.tray = null;
     systemPreferences.removeListener('accent-color-changed', this.onAccent);
+    for (const t of this.feedTimers) clearInterval(t);
+    this.feedTimers = [];
+    this.recentWatch?.close();
+    this.recentWatch = null;
+    this.feeds = { media: false, sys: false, recent: false };
+    for (const w of this.dims.values()) if (!w.isDestroyed()) w.destroy();
+    this.dims.clear();
     // closing the helper's input makes it show the desktop icons Facet hid
     this.helper.stop();
     if (this.layout.settings.iconsHidden) { try { fs.rmSync(path.join(this.host.dataDir, ICONS_MARKER), { force: true }); } catch { /* gone */ } }
@@ -209,7 +224,209 @@ class Facet {
     try { writeJson(this.layoutFile, this.layout); } catch (e) { console.warn('Facet: could not save the layout', e); }
   }
 
-  private changed() { this.save(); this.push(); }
+  private changed() { this.save(); this.push(); this.syncFeeds(); }
+
+  // ---------- live data for the media, Control Center and recent-folders widgets ----------
+
+  private media: MediaState = { spotify: null, current: null };
+  private sys: SysState | null = null;
+  private recent: RecentFolder[] = [];
+  private feeds = { media: false, sys: false, recent: false };
+  private feedTimers: NodeJS.Timeout[] = [];
+  private recentWatch: fs.FSWatcher | null = null;
+  private cpuLast = os.cpus().map((c) => c.times);
+  private dims = new Map<string, BrowserWindow>();
+  private brightnessInfo: { monitors: { x: number; y: number; w: number; h: number; ddc: boolean; value: number }[]; wmi: number } | null = null;
+
+  private sendAll(channel: string, value: unknown) {
+    for (const w of this.windows()) if (!w.isDestroyed()) w.webContents.send(channel, value);
+  }
+
+  /** Starts or stops the helper's watchers to match the widgets on screen (nothing runs for no widget). */
+  private syncFeeds() {
+    if (!this.running) return;
+    const has = (t: WidgetType) => this.layout.widgets.some((w) => w.type === t);
+    const want = { media: has('media') || has('control'), sys: has('control'), recent: has('recent') };
+    if (want.media !== this.feeds.media) this.helper.call('media-watch', want.media ? '1' : '0', path.join(this.host.dataDir, 'art'));
+    if (want.sys !== this.feeds.sys) {
+      this.helper.call('sys-watch', want.sys ? '1' : '0');
+      if (want.sys) this.readBrightness();
+    }
+    if (want.recent !== this.feeds.recent) {
+      if (want.recent) {
+        this.loadRecent();
+        try {
+          let t: NodeJS.Timeout | null = null;
+          this.recentWatch = fs.watch(path.join(app.getPath('appData'), 'Microsoft', 'Windows', 'Recent'), () => {
+            if (t) clearTimeout(t);
+            t = setTimeout(() => this.loadRecent(), 1500);
+          });
+        } catch { /* polled below anyway */ }
+      } else { this.recentWatch?.close(); this.recentWatch = null; }
+    }
+    this.feeds = want;
+    for (const t of this.feedTimers) clearInterval(t);
+    this.feedTimers = [];
+    if (want.sys) this.feedTimers.push(setInterval(() => this.sampleCpu(), 3000));
+    if (want.recent) this.feedTimers.push(setInterval(() => this.loadRecent(), 60000));
+  }
+
+  private onMedia(json: string) {
+    let m: MediaState;
+    try { m = JSON.parse(json); } catch { return; }
+    const fix = (t: Track | null) => (t ? { ...t, art: t.art ? pathToFileURL(t.art).href : '' } : null);
+    this.media = { spotify: fix(m.spotify), current: fix(m.current) };
+    this.sendAll('facet:media', this.media);
+  }
+
+  private onSys(json: string) {
+    let v: Partial<SysState>;
+    try { v = JSON.parse(json); } catch { return; }
+    this.sys = { ...(this.sys ?? this.emptySys()), ...v };
+    this.sendAll('facet:sys', this.sys);
+  }
+
+  private emptySys(): SysState {
+    return {
+      volume: null, muted: false, device: '', nightlight: false, dark: true, wifi: null, bluetooth: null, net: null,
+      brightness: this.layout.settings.dim, hardware: false, cpu: 0, ram: 0,
+    };
+  }
+
+  private sampleCpu() {
+    const now = os.cpus().map((c) => c.times);
+    let busy = 0, total = 0;
+    now.forEach((t, i) => {
+      const p = this.cpuLast[i] ?? t;
+      const d = (k: keyof typeof t) => t[k] - p[k];
+      const all = d('user') + d('nice') + d('sys') + d('idle') + d('irq');
+      busy += all - d('idle');
+      total += all;
+    });
+    this.cpuLast = now;
+    const cpu = total ? Math.round((busy / total) * 100) : 0;
+    const ram = Math.round((1 - os.freemem() / os.totalmem()) * 100);
+    const s = this.sys ?? this.emptySys();
+    // small wobbles aren't worth redrawing the Control Center for
+    if (Math.abs(s.cpu - cpu) < 2 && Math.abs(s.ram - ram) < 2) return;
+    this.sys = { ...s, cpu, ram };
+    this.sendAll('facet:sys', this.sys);
+  }
+
+  private async loadRecent() {
+    const raw = await this.helper.call('recent', 24);
+    if (raw === null) return;
+    let list: { path: string; time: number }[] = [];
+    try { list = JSON.parse(raw); } catch { return; }
+    const next: RecentFolder[] = list.map((r) => ({ path: r.path, name: path.basename(r.path) || r.path, parent: path.dirname(r.path) === r.path ? '' : path.dirname(r.path), time: r.time }));
+    if (JSON.stringify(next) === JSON.stringify(this.recent)) return;
+    this.recent = next;
+    this.sendAll('facet:recent', this.recent);
+  }
+
+  // ---------- brightness: real where the display allows it, otherwise dimming ----------
+
+  /** Which displays have hardware brightness (DDC/CI monitors, laptop panels through WMI). */
+  private async readBrightness() {
+    const raw = await this.helper.call('brightness');
+    try { this.brightnessInfo = raw ? JSON.parse(raw) : null; } catch { this.brightnessInfo = null; }
+    const hw = this.hardwareFor();
+    const first = [...hw.values()][0];
+    const s = this.sys ?? this.emptySys();
+    this.sys = { ...s, hardware: hw.size > 0, brightness: first ? first.value : this.layout.settings.dim };
+    this.sendAll('facet:sys', this.sys);
+    this.applyDim();
+  }
+
+  /** display id -> its hardware brightness control. */
+  private hardwareFor() {
+    const out = new Map<string, { target: string; value: number }>();
+    const info = this.brightnessInfo;
+    if (!info) return out;
+    for (const d of screen.getAllDisplays()) {
+      const phys = screen.dipToScreenRect(null, d.bounds);
+      const i = info.monitors.findIndex((m) => Math.abs(m.x - phys.x) < 8 && Math.abs(m.y - phys.y) < 8);
+      if (i >= 0 && info.monitors[i].ddc) out.set(String(d.id), { target: String(i), value: info.monitors[i].value });
+      else if (d.internal && info.wmi >= 0) out.set(String(d.id), { target: 'wmi', value: info.wmi });
+    }
+    return out;
+  }
+
+  private setBrightness(value: number) {
+    value = Math.max(15, Math.min(100, Math.round(value)));
+    const hw = this.hardwareFor();
+    for (const t of new Set([...hw.values()].map((h) => h.target))) this.helper.call('brightness-set', t, value);
+    if (hw.size < screen.getAllDisplays().length) { this.layout.settings.dim = value; this.save(); }
+    this.sys = { ...(this.sys ?? this.emptySys()), brightness: value };
+    this.sendAll('facet:sys', this.sys);
+    this.applyDim();
+  }
+
+  /** A black, click-through, always-on-top veil over displays that can't dim themselves. */
+  private applyDim() {
+    const hw = this.hardwareFor();
+    const level = this.layout.settings.dim;
+    const alpha = this.running && level < 100 ? (100 - level) / 100 : 0;
+    const keep = new Set<string>();
+    for (const d of screen.getAllDisplays()) {
+      const id = String(d.id);
+      if (hw.has(id) || alpha <= 0) continue;
+      keep.add(id);
+      let w = this.dims.get(id);
+      if (!w || w.isDestroyed()) {
+        w = new BrowserWindow({
+          ...{ x: d.bounds.x, y: d.bounds.y, width: d.bounds.width, height: d.bounds.height },
+          frame: false, show: false, backgroundColor: '#000000', hasShadow: false, thickFrame: false, roundedCorners: false,
+          resizable: false, movable: false, minimizable: false, maximizable: false, fullscreenable: false,
+          skipTaskbar: true, focusable: false, type: 'toolbar', title: 'Facet dimming',
+          webPreferences: { sandbox: true, contextIsolation: true },
+        });
+        w.setIgnoreMouseEvents(true);
+        w.setAlwaysOnTop(true, 'screen-saver');
+        w.on('page-title-updated', (e) => e.preventDefault());
+        this.dims.set(id, w);
+        const win = w;
+        win.once('ready-to-show', () => { if (!win.isDestroyed()) win.showInactive(); });
+        win.loadURL('about:blank');
+      }
+      w.setBounds({ x: d.bounds.x, y: d.bounds.y, width: d.bounds.width, height: d.bounds.height });
+      w.setOpacity(alpha);
+    }
+    for (const [id, w] of this.dims) if (!keep.has(id)) { if (!w.isDestroyed()) w.destroy(); this.dims.delete(id); }
+  }
+
+  /** Control Center changes. */
+  private setSys(key: string, value: unknown) {
+    const v = value as never;
+    switch (key) {
+      case 'volume': this.helper.call('volume', Math.round(Number(v))); break;
+      case 'mute': this.helper.call('mute', v ? '1' : '0'); break;
+      case 'nightlight': this.helper.call('nightlight', v ? '1' : '0'); break;
+      case 'dark': this.helper.call('theme', v ? 'dark' : 'light'); break;
+      case 'wifi': case 'bluetooth': this.helper.call('radio', key, v ? 'on' : 'off'); break;
+      case 'brightness': this.setBrightness(Number(v)); return;
+    }
+    // show the change straight away; the helper's next report confirms it
+    if (this.sys && key in this.sys) { this.sys = { ...this.sys, [key]: v }; this.sendAll('facet:sys', this.sys); }
+  }
+
+  /** The Control Center's buttons. */
+  private launch(what: string) {
+    const run = (cmd: string, args: string[] = []) => { try { spawn(cmd, args, { detached: true, stdio: 'ignore', windowsHide: true }).unref(); } catch { /* not available */ } };
+    switch (what) {
+      case 'spotify': shell.openExternal('spotify:'); break;
+      case 'snip': shell.openExternal('ms-screenclip:'); break;
+      case 'settings': shell.openExternal('ms-settings:'); break;
+      case 'calc': run('calc.exe'); break;
+      case 'lock': run('rundll32.exe', ['user32.dll,LockWorkStation']); break;
+      case 'taskmgr': run('taskmgr.exe'); break;
+      case 'network': shell.openExternal('ms-settings:network'); break;
+      case 'bluetooth': shell.openExternal('ms-settings:bluetooth'); break;
+      case 'nightlight': shell.openExternal('ms-settings:nightlight'); break;
+      case 'sound': shell.openExternal('ms-settings:sound'); break;
+      case 'display': shell.openExternal('ms-settings:display'); break;
+    }
+  }
 
   private widget(id: string) { return this.layout.widgets.find((w) => w.id === id); }
 
@@ -223,11 +440,18 @@ class Facet {
     return true;
   }
 
-  private addWidget(type: 'folder' | 'clock', opts: { name?: string; display?: string; x?: number; y?: number; paths?: string[] } = {}) {
+  private addWidget(type: WidgetType, opts: { name?: string; display?: string; x?: number; y?: number; paths?: string[] } = {}) {
     const display = opts.display && this.displays().some((d) => d.id === opts.display) ? opts.display : String(screen.getPrimaryDisplay().id);
-    const size = type === 'clock' ? { w: 440, h: 190 } : { w: 114, h: 108 };
+    const SIZES: Record<WidgetType, { w: number; h: number }> = {
+      folder: { w: 114, h: 108 }, clock: { w: 440, h: 190 }, media: { w: 380, h: 170 }, control: { w: 372, h: 456 }, recent: { w: 320, h: 380 },
+    };
+    const size = SIZES[type];
     const at = opts.x !== undefined && opts.y !== undefined ? { x: opts.x, y: opts.y } : this.freeSpot(display, size.w, size.h);
-    const w = type === 'clock' ? newClock(display, at.x, at.y) : newFolder(this.uniqueName(opts.name || 'New Folder'), display, at.x, at.y, this.itemsFor(opts.paths || []));
+    const w = type === 'clock' ? newClock(display, at.x, at.y)
+      : type === 'media' ? newMedia(display, at.x, at.y)
+        : type === 'control' ? newControl(display, at.x, at.y)
+          : type === 'recent' ? newRecent(display, at.x, at.y)
+            : newFolder(this.uniqueName(opts.name || 'New Folder'), display, at.x, at.y, this.itemsFor(opts.paths || []));
     this.layout.widgets.push(w);
     this.pending.push({ id: w.id, display, x: at.x, y: at.y, w: size.w, h: size.h });
     this.changed();
@@ -300,6 +524,7 @@ class Facet {
       desk.bounds = desk.win.getBounds();
     }
     for (const d of list) if (!this.desks.has(d.id)) this.createDesk(d);
+    if (this.dims.size || this.layout.settings.dim < 100) this.applyDim();
     this.refreshWalls();
     this.push();
   }
@@ -650,7 +875,12 @@ class Facet {
       { label: 'Open Facet', click: () => this.showHome() },
       { type: 'separator' },
       { label: 'New Folder', click: () => this.addWidget('folder') },
-      { label: 'New Clock', click: () => this.addWidget('clock') },
+      { label: 'New Widget', submenu: [
+        { label: 'Clock', click: () => this.addWidget('clock') },
+        { label: 'Spotify', click: () => this.addWidget('media') },
+        { label: 'Control Center', click: () => this.addWidget('control') },
+        { label: 'Recent Folders', click: () => this.addWidget('recent') },
+      ] },
       { label: 'Organize Desktop…', click: () => { this.showHome(); this.home?.webContents.send('facet:command', { kind: 'organize' }); } },
       { type: 'separator' },
       { label: 'Hide Desktop Icons', type: 'checkbox', checked: s.iconsHidden, enabled: this.helper.ready, click: (m) => this.setDesktopIcons(!m.checked) },
@@ -665,10 +895,13 @@ class Facet {
 
   private wire(wc: WebContents, desk: Desk | null) {
     const on = (channel: string, fn: (...args: any[]) => unknown) => wc.ipc.handle(channel, (_e, ...args) => fn(...args));
-    on('facet:init', () => ({ state: this.state(), display: desk?.display ?? null, wall: desk?.wall ?? null }));
+    on('facet:init', () => ({ state: this.state(), display: desk?.display ?? null, wall: desk?.wall ?? null, media: this.media, sys: this.sys, recent: this.recent }));
+    on('facet:media-cmd', (target: string, cmd: string, arg?: string) => this.helper.call('media', target === 'spotify' ? 'spotify' : 'current', String(cmd), String(arg ?? '')));
+    on('facet:sys-set', (key: string, value: unknown) => this.setSys(String(key), value));
+    on('facet:launch', (what: string) => this.launch(String(what)));
     on('facet:put', (w: Widget) => this.putWidget(w));
-    on('facet:add', (type: 'folder' | 'clock', opts?: { name?: string; display?: string; x?: number; y?: number; paths?: string[] }) =>
-      (type === 'folder' || type === 'clock' ? this.addWidget(type, { ...opts, display: opts?.display ?? desk?.display.id }) : null));
+    on('facet:add', (type: WidgetType, opts?: { name?: string; display?: string; x?: number; y?: number; paths?: string[] }) =>
+      (['folder', 'clock', 'media', 'control', 'recent'].includes(type) ? this.addWidget(type, { ...opts, display: opts?.display ?? desk?.display.id }) : null));
     on('facet:remove', (id: string) => {
       const n = this.layout.widgets.length;
       this.layout.widgets = this.layout.widgets.filter((w) => w.id !== id);

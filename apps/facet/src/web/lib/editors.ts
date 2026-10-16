@@ -1,6 +1,6 @@
 // Settings forms for a clock or a folder. The same forms appear in the popover on the desktop and in the
 // Facet window; every change is reported at once so the widget updates live.
-import type { ClockWidget, FolderWidget } from '../../shared/types';
+import type { ClockWidget, ControlWidget, FolderWidget, MediaWidget, RecentWidget, Widget } from '../../shared/types';
 import { h } from './dom';
 import { FACES, FONTS } from './clock';
 import { field, segmented, slider, stepper, swatches, toggle } from './controls';
@@ -92,3 +92,45 @@ export function folderEditor(w: FolderWidget, onChange: (patch: Partial<FolderWi
   render();
   return el;
 }
+
+const SIZES = [{ id: 's', label: 'Small' }, { id: 'm', label: 'Medium' }, { id: 'l', label: 'Large' }] as const;
+
+export function mediaEditor(w: MediaWidget, onChange: (patch: Partial<MediaWidget>) => void) {
+  const set = (patch: Partial<MediaWidget>) => { Object.assign(w, patch); onChange(patch); };
+  return h('div', { class: 'editor' },
+    field('Plays from', segmented([{ id: 'spotify', label: 'Spotify' }, { id: 'any', label: 'Any player' }] as const, w.source, (source) => set({ source }))),
+    field('Size', segmented(SIZES, w.size, (size) => set({ size }))),
+    field('Background', segmented([{ id: 'art', label: 'Album art' }, { id: 'glass', label: 'Glass' }, { id: 'dark', label: 'Dark' }] as const, w.bg, (bg) => set({ bg }))),
+    h('p', { class: 'hint', text: 'Uses the Windows media controls, so it works with the Spotify app without signing in. With "Any player" it follows whatever is playing, browsers included.' }),
+  );
+}
+
+export function controlEditor(w: ControlWidget, onChange: (patch: Partial<ControlWidget>) => void) {
+  const set = (patch: Partial<ControlWidget>) => { Object.assign(w, patch); onChange(patch); };
+  return h('div', { class: 'editor' },
+    field('Size', segmented(SIZES, w.size, (size) => set({ size }))),
+    h('div', { class: 'toggles' }, toggle('24-hour time', w.hour24, (hour24) => set({ hour24 }))),
+    h('p', { class: 'hint', text: 'Right-click a toggle to open its Windows settings. On monitors without hardware brightness control, the brightness slider dims the screen instead.' }),
+  );
+}
+
+export function recentEditor(w: RecentWidget, onChange: (patch: Partial<RecentWidget>) => void) {
+  const set = (patch: Partial<RecentWidget>) => { Object.assign(w, patch); onChange(patch); };
+  return h('div', { class: 'editor' },
+    field('Show as', segmented([{ id: 'list', label: 'List' }, { id: 'grid', label: 'Icons' }] as const, w.layout, (layout) => set({ layout }))),
+    h('div', { class: 'pair' }, field('Folders', stepper(3, 16, w.count, (count) => set({ count }))), field('Size', segmented(SIZES, w.size, (size) => set({ size })))),
+  );
+}
+
+/** The settings form for any widget. */
+export function editorFor(w: Widget, onChange: (patch: Partial<Widget>) => void, opts: { onNameFocus?: (focus: boolean) => void } = {}): HTMLElement {
+  switch (w.type) {
+    case 'clock': return clockEditor(w, onChange as never);
+    case 'folder': return folderEditor(w, onChange as never, opts);
+    case 'media': return mediaEditor(w, onChange as never);
+    case 'control': return controlEditor(w, onChange as never);
+    case 'recent': return recentEditor(w, onChange as never);
+  }
+}
+
+export const TITLES: Record<Widget['type'], string> = { folder: 'Folder', clock: 'Clock', media: 'Spotify', control: 'Control Center', recent: 'Recent folders' };

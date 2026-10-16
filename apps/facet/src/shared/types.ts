@@ -56,7 +56,84 @@ export interface ClockWidget {
   blink: boolean;
 }
 
-export type Widget = FolderWidget | ClockWidget;
+/** Now playing: Spotify (or whatever app is playing), through Windows' media controls. */
+export interface MediaWidget {
+  id: string;
+  type: 'media';
+  display: string;
+  x: number;
+  y: number;
+  /** 'spotify': follow Spotify; 'any': whatever is playing. */
+  source: 'spotify' | 'any';
+  size: WidgetSize;
+  /** 'art': the album art, blurred, behind everything; 'glass' or 'dark' glass. */
+  bg: 'art' | 'glass' | 'dark';
+}
+
+/** An iPhone-style Control Center. */
+export interface ControlWidget {
+  id: string;
+  type: 'control';
+  display: string;
+  x: number;
+  y: number;
+  size: WidgetSize;
+  hour24: boolean;
+}
+
+/** Recently used folders (from Windows' Recent items). */
+export interface RecentWidget {
+  id: string;
+  type: 'recent';
+  display: string;
+  x: number;
+  y: number;
+  count: number;
+  layout: 'list' | 'grid';
+  size: WidgetSize;
+}
+
+export type Widget = FolderWidget | ClockWidget | MediaWidget | ControlWidget | RecentWidget;
+export type WidgetType = Widget['type'];
+
+/** One player, as Windows' media controls report it. Times in ms; position was true at `updated`. */
+export interface Track {
+  app: string;
+  title: string;
+  artist: string;
+  album: string;
+  status: 'Playing' | 'Paused' | 'Stopped' | 'Closed' | 'Opened' | 'Changing';
+  position: number;
+  duration: number;
+  updated: number;
+  canPrev: boolean;
+  canNext: boolean;
+  canSeek: boolean;
+  shuffle: boolean | null;
+  repeat: 'None' | 'Track' | 'List' | null;
+  /** file: URL of the album art ('' when there is none). */
+  art: string;
+}
+
+export interface MediaState { spotify: Track | null; current: Track | null }
+
+export interface SysState {
+  volume: number | null;
+  muted: boolean;
+  device: string;
+  nightlight: boolean;
+  dark: boolean;
+  wifi: boolean | null;
+  bluetooth: boolean | null;
+  net: { name: string; wifi: boolean; bars: number | null } | null;
+  /** 0-100; whether any display has real (hardware) brightness. */
+  brightness: number;
+  hardware: boolean;
+  cpu: number;
+  ram: number;
+}
+
+export interface RecentFolder { path: string; name: string; parent: string; time: number }
 
 export interface Settings {
   startup: boolean;
@@ -65,6 +142,8 @@ export interface Settings {
   labels: boolean;
   /** Hide the Windows desktop icons while Facet runs. */
   iconsHidden: boolean;
+  /** Software brightness (dimming) for displays without hardware brightness, 15-100. */
+  dim: number;
 }
 
 export interface DisplayInfo {

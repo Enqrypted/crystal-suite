@@ -1,0 +1,30 @@
+// Icons for the live widgets (24x24, currentColor).
+const svg = (body: string, extra = '') => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"${extra}>${body}</svg>`;
+
+export const G = {
+  play: '<svg viewBox="0 0 24 24"><path d="M7.5 4.8c0-.9 1-1.4 1.7-.9l10.1 6.8c.6.4.6 1.3 0 1.7L9.2 19.2c-.7.5-1.7 0-1.7-.9z" fill="currentColor"/></svg>',
+  pause: '<svg viewBox="0 0 24 24"><rect x="6" y="4.5" width="4.2" height="15" rx="1.4" fill="currentColor"/><rect x="13.8" y="4.5" width="4.2" height="15" rx="1.4" fill="currentColor"/></svg>',
+  next: '<svg viewBox="0 0 24 24"><path d="M4.5 6.4c0-.8.9-1.3 1.6-.8L13 10.4c.6.4.6 1.2 0 1.6l-6.9 4.8c-.7.5-1.6 0-1.6-.8zM12.5 6.4c0-.8.9-1.3 1.6-.8L21 10.4c.6.4.6 1.2 0 1.6l-6.9 4.8c-.7.5-1.6 0-1.6-.8z" fill="currentColor" transform="translate(-0.8 0.8)"/></svg>',
+  prev: '<svg viewBox="0 0 24 24"><g transform="matrix(-1 0 0 1 24 0)"><path d="M4.5 6.4c0-.8.9-1.3 1.6-.8L13 10.4c.6.4.6 1.2 0 1.6l-6.9 4.8c-.7.5-1.6 0-1.6-.8zM12.5 6.4c0-.8.9-1.3 1.6-.8L21 10.4c.6.4.6 1.2 0 1.6l-6.9 4.8c-.7.5-1.6 0-1.6-.8z" fill="currentColor" transform="translate(-0.8 0.8)"/></g></svg>',
+  shuffle: svg('<path d="M3 7h3.5c2 0 3.2 1 4.3 2.6l2.4 3.8C14.3 15 15.5 16 17.5 16H21M18 13l3 3-3 3M3 16h3.5c1.4 0 2.4-.5 3.2-1.3M21 7h-3.5c-1.4 0-2.4.5-3.2 1.3M18 4l3 3-3 3"/>'),
+  repeat: svg('<path d="M17 3l3 3-3 3M4 11V9.5A3.5 3.5 0 0 1 7.5 6H20M7 21l-3-3 3-3M20 13v1.5a3.5 3.5 0 0 1-3.5 3.5H4"/>'),
+  repeat1: svg('<path d="M17 3l3 3-3 3M4 11V9.5A3.5 3.5 0 0 1 7.5 6H20M7 21l-3-3 3-3M20 13v1.5a3.5 3.5 0 0 1-3.5 3.5H4"/><path d="M11.2 10.6l1.3-.8v4.6" stroke-width="1.6"/>'),
+  note: svg('<path d="M9 18V5.5l11-2v12.5"/><circle cx="6.5" cy="18" r="2.6"/><circle cx="17.5" cy="16" r="2.6"/>'),
+  wifi: svg('<path d="M2.5 9a14 14 0 0 1 19 0M5.8 12.4a9.2 9.2 0 0 1 12.4 0M9.1 15.8a4.4 4.4 0 0 1 5.8 0"/><circle cx="12" cy="19.2" r="1.1" fill="currentColor" stroke="none"/>'),
+  ethernet: svg('<rect x="4" y="4" width="16" height="12" rx="2"/><path d="M8 16v4h8v-4M8.5 8v3M11 8v3M13.5 8v3M16 8v3" stroke-width="1.6"/>'),
+  bluetooth: svg('<path d="M7 7.5l10 9-5 4.5V3l5 4.5-10 9"/>'),
+  nightlight: svg('<path d="M12 3v1.5M5.6 5.6l1.1 1.1M3 12h1.5M18.4 5.6l-1.1 1.1M21 12h-1.5"/><path d="M7.8 15.5a5 5 0 1 1 8.4 0z" fill="currentColor" stroke="none"/><path d="M6 19h12M8.5 21.5h7"/>'),
+  dark: svg('<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor" stroke="none"/>'),
+  sun: svg('<circle cx="12" cy="12" r="4.2" fill="currentColor" stroke="none"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/>'),
+  speaker: svg('<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>'),
+  muted: svg('<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M16 9.5l5 5M21 9.5l-5 5"/>'),
+  snip: svg('<circle cx="6.5" cy="17.5" r="2.8"/><circle cx="6.5" cy="6.5" r="2.8"/><path d="M8.6 8.5L20 18M8.6 15.5L20 6"/>'),
+  calc: svg('<rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M8.5 7.5h7M8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01M8.5 15h.01M12 15h.01M15.5 15h.01M8.5 18h.01M12 18h.01M15.5 18h.01" stroke-width="2.2"/>'),
+  lock: svg('<rect x="5" y="10.5" width="14" height="10" rx="2.2"/><path d="M8.2 10.5V7.8a3.8 3.8 0 0 1 7.6 0v2.7"/>'),
+  gear: svg('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/>'),
+  cpu: svg('<rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx=".8"/><path d="M9 2.5V6M15 2.5V6M9 18v3.5M15 18v3.5M2.5 9H6M2.5 15H6M18 9h3.5M18 15h3.5"/>'),
+  memory: svg('<rect x="3" y="7" width="18" height="10" rx="1.8"/><path d="M7 10.5v3M10.5 10.5v3M14 10.5v3M17.5 10.5v3M6 17v2.5M18 17v2.5"/>'),
+  battery: svg('<rect x="2.5" y="7.5" width="17" height="9" rx="2.2"/><path d="M21.5 10.5v3"/>'),
+  recent: svg('<path d="M3.5 7.5c0-1 .8-1.8 1.8-1.8h3.9l1.7 1.8h7.8c1 0 1.8.8 1.8 1.8v8.4c0 1-.8 1.8-1.8 1.8H5.3c-1 0-1.8-.8-1.8-1.8z"/><circle cx="16.5" cy="15.5" r="3.7" fill="currentColor" stroke="none" opacity=".25"/><path d="M16.5 13.6v2l1.3 1"/>'),
+  external: svg('<path d="M14 4h6v6M20 4l-8.5 8.5M18 14v4.5A1.5 1.5 0 0 1 16.5 20h-11A1.5 1.5 0 0 1 4 18.5v-11A1.5 1.5 0 0 1 5.5 6H10"/>'),
+};

@@ -31,6 +31,12 @@ contextBridge.exposeInMainWorld('facet', {
   onInteractive: listen('facet:interactive'),
   onCommand: listen('facet:command'),
   onMarquee: listen('facet:marquee'),
+  onMedia: listen('facet:media'),
+  onSys: listen('facet:sys'),
+  onRecent: listen('facet:recent'),
+  mediaCmd: call('facet:media-cmd'),
+  sysSet: call('facet:sys-set'),
+  launch: call('facet:launch'),
   /** Absolute path of a file dropped from Explorer. */
   pathForFile: (file: File) => webUtils.getPathForFile(file),
 });
