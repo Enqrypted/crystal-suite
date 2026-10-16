@@ -226,6 +226,8 @@ scripts/build-cut.cjs   bundles Cut (esbuild + vite)
 scripts/build-facet.cjs bundles Facet (esbuild + vite) and compiles FacetHelper.exe
 scripts/build-quartz.cjs bundles Quartz (esbuild + vite) with PDF.js's data files
 scripts/pack-apps.cjs   packages apps into release zips and writes catalog.json
+scripts/build-site.cjs  builds the website in site/ (home, download and app pages; npm run site)
+site/                   the website: generated pages, style.css, site.js and the app screenshots in img/
 catalog.json            the published app catalog the launcher reads
 ```
 

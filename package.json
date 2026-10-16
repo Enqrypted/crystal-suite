@@ -17,6 +17,7 @@
     "build:cut": "node scripts/build-cut.cjs",
     "build:facet": "node scripts/build-facet.cjs",
     "build:quartz": "node scripts/build-quartz.cjs",
+    "site": "node scripts/build-site.cjs",
     "typecheck": "tsc --noEmit",
     "app": "electron .",
     "photon": "vite build && electron . --photon",
