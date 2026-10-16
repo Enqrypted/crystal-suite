@@ -42,7 +42,7 @@ export function modal(title: string, body: HTMLElement, buttons: DialogButton[],
 }
 
 export async function confirm(title: string, message: string, ok = 'OK', cancel = 'Cancel') {
-  return (await modal(title, h('div', { style: 'color:var(--dim);line-height:1.5' }, message), [
+  return (await modal(title, h('div', { style: 'color:var(--dim);line-height:1.5;white-space:pre-wrap' }, message), [
     { label: cancel, value: 'no' }, { label: ok, value: 'yes', primary: true },
   ])) === 'yes';
 }

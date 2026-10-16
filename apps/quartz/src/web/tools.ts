@@ -307,8 +307,8 @@ export async function defaultAppDialog() {
   if (!s?.supported) { await alertBox('Default PDF app', 'Quartz can be the default PDF app once it’s installed by the Crystal Suite launcher.'); return; }
   if (s.isDefault) { await alertBox('Default PDF app', 'Quartz already opens your PDF files.'); return; }
   const ok = await confirm('Open PDFs with Quartz?',
-    'Quartz adds itself to Windows’ list of PDF apps, then Windows Settings opens on Quartz’s page. There, set .pdf to Quartz (Windows asks you to confirm the choice yourself).',
-    'Continue');
+    'Windows Settings opens on Quartz’s page: set .pdf to Quartz there (Windows has you make that choice yourself).\n\nOr right-click any PDF → Open with → Choose another app → Quartz, and tick “Always”.',
+    'Open Settings');
   if (!ok) return;
   const done = await native.makeDefault();
   if (!done) await alertBox('Default PDF app', 'Windows didn’t accept Quartz’s registration. Right-click a PDF file → Open with → Choose another app instead.');

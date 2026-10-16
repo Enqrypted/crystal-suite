@@ -1,14 +1,14 @@
 {
   "id": "quartz",
   "name": "Quartz",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "PDF reader & editor",
   "badge": "Qz",
   "color": "#ff7a6b",
   "bg": "#3b0d0d",
   "main": "main.cjs",
   "minLauncher": "0.2.0",
-  "notes": "First release: a fast PDF reader with tabs, thumbnails, outline, search and night mode, plus editing: highlight, draw, add text and images, fill forms, sign (draw, type or use an image), organize pages (reorder, rotate, delete, duplicate, insert, extract), combine and split PDFs, export pages as images, and print.",
+  "notes": "Quartz now shows up in Windows’ “Open with” menu for PDFs and in Settings › Default apps as soon as you open it once (your default PDF app stays as it is). To make it the default: right-click a PDF → Open with → Choose another app → Quartz → Always, or Tools › Make Quartz the default PDF app.",
   "fileTypes": [
     "pdf"
   ]

@@ -138,7 +138,7 @@ A PDF reader and editor, like Adobe Acrobat: fast, tabbed, and everything stays 
 - **Fill & sign** — fill in PDF forms (text fields, checkboxes, lists) and save them; sign by drawing, typing your name in a handwriting font, or using a photo of your signature with the paper made transparent; signatures are kept for next time.
 - **Organize pages** — a page grid to reorder (drag), rotate, delete, duplicate, insert blank pages or pages from other PDFs, and extract pages into a new document; undoable.
 - **Tools** — combine several PDFs into one, split a document (every N pages, each page, or page ranges), export pages as PNG/JPEG at up to 600 dpi, save the text, edit the title/author/subject/keywords, print (through the Windows print dialog).
-- **Default PDF app** — Quartz can add itself to Windows' PDF apps (Tools › Make Quartz the default PDF app); Windows then lets you choose it in Settings. Uninstalling Quartz removes that registration.
+- **Default PDF app** — once you've opened it, Quartz is listed under **Open with** for PDFs and in Settings › Default apps (your current default is left alone). To make it the default, pick it with **Always** in Open with › Choose another app, or use Tools › Make Quartz the default PDF app. Uninstalling Quartz removes its entries.
 
 Quartz is built on Mozilla's [PDF.js](https://github.com/mozilla/pdf.js) (the PDF engine in Firefox) for reading, forms and annotations, and [pdf-lib](https://github.com/Hopding/pdf-lib) for page editing.
 

@@ -6,7 +6,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { app, BrowserWindow, dialog, shell, type WebContents } from 'electron';
-import { refresh as refreshDefault, register as registerDefault, status as defaultStatus, unregister } from './defaultapp';
+import { ensureListed, register as registerDefault, status as defaultStatus, unregister } from './defaultapp';
 
 export interface Host {
   appId: string;
@@ -187,7 +187,7 @@ let current: Quartz | null = null;
 export function activate(host: Host) {
   const q = new Quartz(host);
   current = q;
-  refreshDefault(host).catch(() => {});
+  ensureListed(host).catch(() => {});
   return {
     open: (args: string[]) => q.open(args || []),
     windows: () => [...q.windows],
