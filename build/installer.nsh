@@ -10,6 +10,8 @@
     Delete "$SMPROGRAMS\Cut.lnk"
     Delete "$DESKTOP\Facet.lnk"
     Delete "$SMPROGRAMS\Facet.lnk"
+    Delete "$DESKTOP\Quartz.lnk"
+    Delete "$SMPROGRAMS\Quartz.lnk"
     ; Facet: starting with Windows, and the Windows desktop icons if Facet hid them
     DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "CrystalSuite.Facet"
     DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run" "CrystalSuite.Facet"
@@ -31,6 +33,12 @@
     DeleteRegKey HKCU "Software\Clients\StartMenuInternet\Prism"
     DeleteRegKey HKCU "Software\Classes\PrismURL"
     DeleteRegKey HKCU "Software\Classes\PrismHTML"
+    ; Quartz's registration as a PDF app
+    DeleteRegValue HKCU "Software\RegisteredApplications" "Quartz"
+    DeleteRegKey HKCU "Software\Crystal Suite\Quartz"
+    DeleteRegValue HKCU "Software\Classes\.pdf\OpenWithProgids" "Quartz.PDF"
+    DeleteRegKey HKCU "Software\Classes\Quartz.PDF"
+    DeleteRegKey /ifempty HKCU "Software\Crystal Suite"
     RMDir /r "$LOCALAPPDATA\Crystal Suite\Apps"
     Delete "$LOCALAPPDATA\Crystal Suite\installed.json"
     Delete "$LOCALAPPDATA\Crystal Suite\settings.json"

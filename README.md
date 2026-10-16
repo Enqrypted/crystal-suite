@@ -10,6 +10,7 @@ The **Crystal Suite** app is a launcher (like Creative Cloud) that installs, upd
 | **Prism** | ✅ Available (from the launcher, or as its own Prism.exe) | Chrome, minus the tracking |
 | **Cut** | ✅ Available (install it from the launcher) | Sony Vegas Pro |
 | **Facet** | ✅ Available (install it from the launcher) | iPhone-style folders and widgets for the Windows desktop |
+| **Quartz** | ✅ Available (install it from the launcher) | Adobe Acrobat |
 | Vector | Planned | Illustrator |
 | Darkroom | Planned | Lightroom |
 | Motion | Planned | After Effects |
@@ -19,7 +20,7 @@ The **Crystal Suite** app is a launcher (like Creative Cloud) that installs, upd
 
 Get **`CrystalSuite-Setup-x.y.z.exe`** from the [latest release](https://github.com/Enqrypted/crystal-suite/releases/latest) (or the portable **`CrystalSuite-Portable-x.y.z.exe`**, no installation needed).
 
-Crystal Suite is a launcher, like Creative Cloud: open it, click **Install** next to an app and it downloads (Photon, Cut and Facet are under 300 KB, Prism about 3 MB, because the apps share the launcher's runtime), verifies and installs it. From then on:
+Crystal Suite is a launcher, like Creative Cloud: open it, click **Install** next to an app and it downloads (Photon, Cut and Facet are under 300 KB, Prism and Quartz about 3 MB, because the apps share the launcher's runtime), verifies and installs it. From then on:
 
 - **Open** starts the app; each app also gets its own Start-menu (and optional desktop) shortcut and taskbar icon.
 - New versions show up under **Updates** (with a count in the sidebar). They install in the background automatically unless you turn that off in **Settings**; an app that is open keeps running and switches to the new version the next time you start it.
@@ -41,6 +42,7 @@ npm run photon     # builds Photon from source and opens it directly
 npm run prism      # builds Prism from source and opens it as a standalone app
 npm run cut        # builds Cut from source and opens it
 npm run facet      # builds Facet from source and runs it (widgets on your desktop + its window)
+npm run quartz     # builds Quartz from source and opens it (add a PDF path to open it: npx electron apps/quartz/standalone/main.cjs file.pdf)
 npm run dev        # Photon in your browser with hot reload: http://localhost:5173
 ```
 
@@ -73,6 +75,11 @@ git commit -am "Cut <v>" && git push
 npm run pack:apps
 gh release create facet-v<v> release/apps/facet-<v>.zip --title "Facet <v>" --latest=false
 git commit -am "Facet <v>" && git push
+
+# A new Quartz version: bump "version" in apps/quartz/app.json, then
+npm run pack:apps
+gh release create quartz-v<v> release/apps/quartz-<v>.zip --title "Quartz <v>" --latest=false
+git commit -am "Quartz <v>" && git push
 
 # A new Prism version: bump "version" in apps/prism/app.json, then
 npm run pack:apps && npm run dist:prism  # the launcher package + the standalone Prism-Setup/Portable exes
@@ -121,6 +128,19 @@ Folders and widgets that live on the Windows desktop itself: below your apps lik
 - **Everyday bits** — starts the moment you sign in (a sign-in task rather than a Run entry, which Windows holds back for a while), tray icon, lock widgets in place, names under icons on/off, every display gets its own widgets. Idles at well under 1% CPU.
 
 The desktop pinning, icons, wallpaper and desktop-icon toggle come from a small helper (`FacetHelper.exe`, about 25 KB) compiled from [apps/facet/native/FacetHelper.cs](apps/facet/native/FacetHelper.cs) with the C# compiler that ships with Windows.
+
+## Quartz features
+
+A PDF reader and editor, like Adobe Acrobat: fast, tabbed, and everything stays on your computer.
+
+- **Reading** — tabs for several PDFs, page thumbnails and the outline (bookmarks) in the sidebar, find with match case / whole words, zoom (Ctrl+wheel zooms around the pointer, fit width, fit page, actual size), continuous, single page, two-page and wrapped layouts, hand tool, rotate view, night mode, links, recent files on the start screen.
+- **Annotate** — highlight text (or drag across anything), draw with any colour, size and opacity, add text boxes, add pictures; move, resize, recolour or delete them, with undo/redo. They are saved as standard PDF annotations, so other PDF readers show them.
+- **Fill & sign** — fill in PDF forms (text fields, checkboxes, lists) and save them; sign by drawing, typing your name in a handwriting font, or using a photo of your signature with the paper made transparent; signatures are kept for next time.
+- **Organize pages** — a page grid to reorder (drag), rotate, delete, duplicate, insert blank pages or pages from other PDFs, and extract pages into a new document; undoable.
+- **Tools** — combine several PDFs into one, split a document (every N pages, each page, or page ranges), export pages as PNG/JPEG at up to 600 dpi, save the text, edit the title/author/subject/keywords, print (through the Windows print dialog).
+- **Default PDF app** — Quartz can add itself to Windows' PDF apps (Tools › Make Quartz the default PDF app); Windows then lets you choose it in Settings. Uninstalling Quartz removes that registration.
+
+Quartz is built on Mozilla's [PDF.js](https://github.com/mozilla/pdf.js) (the PDF engine in Firefox) for reading, forms and annotations, and [pdf-lib](https://github.com/Hopding/pdf-lib) for page editing.
 
 ## Prism features
 
@@ -186,6 +206,11 @@ apps/facet/             Facet (TypeScript)
                         wallpaper, start with Windows, Organize desktop, the Facet window and tray
   src/web/              the desktop layer (folders, open folders, clock, menus) and the Facet window
   native/FacetHelper.cs Windows helper: desktop pinning, shell icons and thumbnails, wallpaper, desktop icons
+apps/quartz/            Quartz (TypeScript)
+  src/main/             main process: windows, file dialogs and atomic saves, recent files, signatures,
+                        PDF.js data files, printing, default-PDF-app registration
+  src/web/              the reader/editor: tabs and viewers (PDF.js), sidebar, organizer (pdf-lib), signing,
+                        combine/split/export tools, printing
 apps/prism/             Prism (TypeScript)
   src/main/             main process: windows & tabs, profiles/privacy, ad blocking, downloads, history,
                         bookmarks, permissions, menus, default-browser registration, prism:// pages
@@ -199,6 +224,7 @@ scripts/build-prism.cjs bundles Prism (esbuild + vite) and snapshots the filter 
 scripts/dist-prism.cjs  builds the standalone Prism installers
 scripts/build-cut.cjs   bundles Cut (esbuild + vite)
 scripts/build-facet.cjs bundles Facet (esbuild + vite) and compiles FacetHelper.exe
+scripts/build-quartz.cjs bundles Quartz (esbuild + vite) with PDF.js's data files
 scripts/pack-apps.cjs   packages apps into release zips and writes catalog.json
 catalog.json            the published app catalog the launcher reads
 ```
@@ -207,4 +233,4 @@ Each layer is a canvas positioned in document space; undo is snapshot-based (str
 
 ## License
 
-MIT — see [LICENSE](LICENSE). PSD reading/writing uses [ag-psd](https://github.com/Agamnentzar/ag-psd) (MIT). Prism's ad blocking uses [@ghostery/adblocker](https://github.com/ghostery/adblocker) (MPL-2.0) — see [apps/prism/THIRD_PARTY_NOTICES.md](apps/prism/THIRD_PARTY_NOTICES.md). Cut reads and writes media with [Mediabunny](https://github.com/Vanilagy/mediabunny) (MPL-2.0) — see [apps/cut/THIRD_PARTY_NOTICES.md](apps/cut/THIRD_PARTY_NOTICES.md). Facet uses no third-party code. "Photoshop" is a trademark of Adobe, "Chrome" of Google, "Vegas Pro" of MAGIX and "iPhone" of Apple; Crystal Suite is an independent project and is not affiliated with any of them.
+MIT — see [LICENSE](LICENSE). PSD reading/writing uses [ag-psd](https://github.com/Agamnentzar/ag-psd) (MIT). Prism's ad blocking uses [@ghostery/adblocker](https://github.com/ghostery/adblocker) (MPL-2.0) — see [apps/prism/THIRD_PARTY_NOTICES.md](apps/prism/THIRD_PARTY_NOTICES.md). Cut reads and writes media with [Mediabunny](https://github.com/Vanilagy/mediabunny) (MPL-2.0) — see [apps/cut/THIRD_PARTY_NOTICES.md](apps/cut/THIRD_PARTY_NOTICES.md). Facet uses no third-party code. Quartz uses [PDF.js](https://github.com/mozilla/pdf.js) (Apache-2.0) and [pdf-lib](https://github.com/Hopding/pdf-lib) (MIT) — see [apps/quartz/THIRD_PARTY_NOTICES.md](apps/quartz/THIRD_PARTY_NOTICES.md). "Photoshop" and "Acrobat" are trademarks of Adobe, "Chrome" of Google, "Vegas Pro" of MAGIX and "iPhone" of Apple; Crystal Suite is an independent project and is not affiliated with any of them.

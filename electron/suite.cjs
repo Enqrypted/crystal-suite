@@ -24,6 +24,7 @@ const KNOWN = [
   { id: 'darkroom', badge: 'Dr', name: 'Darkroom', description: 'Photo library & RAW development', color: '#31c5f0', bg: '#001d26' },
   { id: 'cut', badge: 'Ct', name: 'Cut', description: 'Video editing', color: '#9999ff', bg: '#00005b' },
   { id: 'facet', badge: 'Fc', name: 'Facet', description: 'Desktop folders & widgets', color: '#5ce1c6', bg: '#00302a' },
+  { id: 'quartz', badge: 'Qz', name: 'Quartz', description: 'PDF reader & editor', color: '#ff7a6b', bg: '#3b0d0d' },
   { id: 'motion', badge: 'Mo', name: 'Motion', description: 'Motion graphics & effects', color: '#d291ff', bg: '#1a0033' },
   { id: 'layout', badge: 'La', name: 'Layout', description: 'Page layout & publishing', color: '#ff3366', bg: '#49021f' },
 ];

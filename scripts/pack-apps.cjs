@@ -50,6 +50,14 @@ const CONTENTS = {
     need(path.join(ROOT, 'dist', 'facet', 'FacetHelper.exe'));
     return tree(path.join(ROOT, 'dist', 'facet'));
   },
+  // a module app: main process + preload + the reader/editor UI with PDF.js's data files
+  quartz: () => {
+    need(path.join(ROOT, 'dist', 'quartz', 'main.cjs'));
+    return [
+      ...tree(path.join(ROOT, 'dist', 'quartz')),
+      { name: 'THIRD_PARTY_NOTICES.md', data: fs.readFileSync(path.join(ROOT, 'apps', 'quartz', 'THIRD_PARTY_NOTICES.md')) },
+    ];
+  },
 };
 
 function need(file) {
