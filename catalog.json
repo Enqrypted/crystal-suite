@@ -41,16 +41,16 @@
     {
       "id": "facet",
       "name": "Facet",
-      "version": "0.1.3",
+      "version": "0.1.4",
       "description": "Desktop folders & widgets",
       "badge": "Fc",
       "color": "#5ce1c6",
       "bg": "#00302a",
-      "url": "https://github.com/Enqrypted/crystal-suite/releases/download/facet-v0.1.3/facet-0.1.3.zip",
-      "size": 80369,
-      "sha256": "1aa65be2fb41f0df0f0fdf2d02e1e3c9b0bd2b93cc3ff441744afdbb79015ee3",
+      "url": "https://github.com/Enqrypted/crystal-suite/releases/download/facet-v0.1.4/facet-0.1.4.zip",
+      "size": 103654,
+      "sha256": "16d697ec42783d198bff58293dde5f44558796858802519a85307fb7adfb3ee3",
       "minLauncher": "0.2.0",
-      "notes": "Hidden desktop icons now only stay hidden while Facet runs: they come back when you quit it (even after a crash), and dragging on the desktop draws a selection box again, which also selects folders and widgets so you can move them together. Facet also starts the moment you sign in (Windows holds ordinary startup programs back for a while), and its glass shows up together with the widgets."
+      "notes": "New widgets: Spotify (album art, progress, play/pause, skip, shuffle and repeat; works with the Spotify app, no sign-in), a Control Center (Wi-Fi, Bluetooth, night light and dark mode toggles, now playing, time, CPU and memory, brightness and volume sliders, and quick buttons), and Recent folders. Add them with the Widget button in Facet or from the tray."
     }
   ]
 }
