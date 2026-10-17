@@ -53,6 +53,7 @@
 .app-cut { --w1a: #c3c3ff; --w1b: #8080ff; --w2a: #a5a1ff; --w2b: #5d5af0; --w3a: #d6b8ff; --w3b: #8f8dff; --w4a: #9fc0ff; --w4b: #7e7bff; }
 .app-facet { --w1a: #a6f2e1; --w1b: #3fd3b4; --w2a: #7fe3d0; --w2b: #2fb5c4; --w3a: #b9f5d6; --w3b: #5ce1c6; --w4a: #8fd9ff; --w4b: #3cc2c9; }
 .app-quartz { --w1a: #ffc2a8; --w1b: #ff7a6b; --w2a: #ffab9e; --w2b: #f25f72; --w3a: #ffd4b8; --w3b: #ff9478; --w4a: #ffb7c9; --w4b: #ff7f8f; }
+.app-onyx { --w1a: #dcffa8; --w1b: #9be83f; --w2a: #b6ff5c; --w2b: #5fcf6a; --w3a: #e8ffc2; --w3b: #7fdc4a; --w4a: #a8f0c8; --w4b: #4cc98a; }
 
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }

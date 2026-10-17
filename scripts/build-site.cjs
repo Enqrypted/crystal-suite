@@ -108,6 +108,24 @@ const APPS = [
       ['Export and print', 'Save pages as PNG or JPEG, save the text, and print through the Windows print dialog.'],
     ],
   },
+  {
+    id: 'onyx', name: 'Onyx', tag: 'Instant replay for games', alt: 'Like ShadowPlay’s instant replay',
+    blurb: 'Onyx keeps the last two minutes of your games ready to save. When something great happens, press Ctrl+Shift+G and keep it as a clip.',
+    ticks: ['Records every game you open by itself, Roblox included', 'Ctrl+Shift+G saves the last 15 or 30 seconds, 1 or 2 minutes', 'Runs on your graphics card’s encoder, so games keep their frame rate'],
+    shots: [
+      ['onyx-picker.webp', 'A neon racing game with Onyx’s clip picker at the top of the screen, offering 15 seconds, 30 seconds, 1 minute or 2 minutes', 'Press Ctrl+Shift+G in game, pick a length, done.'],
+      ['onyx-window.webp', 'The Onyx window with two games recording, their save buttons, the clips below and the settings', 'Every open game records on its own; your clips are right below.'],
+      ['onyx-games.webp', 'Onyx’s What to record section, with two games recognised and other apps left alone', 'Onyx tells games from other apps, and you can correct it.'],
+    ],
+    features: [
+      ['Save it after it happens', 'The last two minutes are always kept. Pick 15 or 30 seconds, 1 or 2 minutes, and it’s an MP4 in Videos\\Onyx.'],
+      ['Finds your games', 'Games Windows knows, games from Steam, Epic, Riot and other launchers, Roblox, Minecraft and anything fullscreen.'],
+      ['Several games at once', 'Each open game has its own replay buffer. In the picker, Tab chooses which one to save.'],
+      ['Easy on your frame rate', 'Captured and encoded on the graphics card (NVIDIA, AMD or Intel), with only compressed video kept in memory.'],
+      ['Your size, your sound', 'The game’s own size or 2160p down to 480p, at 30 or 60 fps, with game sound and your microphone if you like.'],
+      ['Always ready', 'Starts with Windows in the tray. Your clips are in the Onyx window, with previews and a player.'],
+    ],
+  },
 ];
 for (const a of APPS) {
   const c = catalog.apps.find((x) => x.id === a.id);
@@ -148,7 +166,7 @@ function footer() {
       <a href="${REPO}/blob/main/LICENSE">MIT license</a>
     </div>
   </div>
-  <p class="fine">Crystal Suite is free and open-source software under the MIT license, made by independent contributors. Photoshop and Acrobat are trademarks of Adobe, Chrome of Google, Vegas Pro of MAGIX and iPhone of Apple; Crystal Suite is not affiliated with any of them.</p>
+  <p class="fine">Crystal Suite is free and open-source software under the MIT license, made by independent contributors. Photoshop and Acrobat are trademarks of Adobe, Chrome of Google, Vegas Pro of MAGIX, iPhone of Apple and ShadowPlay of NVIDIA; Crystal Suite is not affiliated with any of them.</p>
 </div></footer>`;
 }
 
@@ -204,12 +222,12 @@ const band = () => `<section class="band waved"><canvas class="waves" data-shape
 
 const home = {
   file: 'index.html', title: 'Crystal Suite', current: 'home',
-  description: 'Crystal Suite is a free, open-source creative suite for Windows: photo editing, a private browser, video editing, desktop widgets and a PDF editor. No account, no subscription.',
+  description: 'Crystal Suite is a free, open-source creative suite for Windows: photo editing, a private browser, video editing, desktop widgets, a PDF editor and instant replay for games. No account, no subscription.',
   body: `<section class="hero waved"><canvas class="waves" aria-hidden="true"></canvas><div class="wrap hero-grid">
   <div class="hero-copy">
     <span class="pill"><i></i>Free &amp; open source &middot; MIT license</span>
     <h1>The free creative suite for Windows.</h1>
-    <p class="lede">Photo editing, a private browser, video editing, desktop widgets and a PDF editor, in one small launcher. No account, no subscription, no telemetry.</p>
+    <p class="lede">Photo editing, a private browser, video editing, desktop widgets, a PDF editor and instant replay for games, in one small launcher. No account, no subscription, no telemetry.</p>
     <div class="cta-row"><a class="btn" href="download.html">${ICON.download}Download for Windows</a><a class="btn ghost" href="${REPO}">${ICON.github}View on GitHub</a></div>
     <p class="meta">Version ${LAUNCHER} &middot; Windows 10 &amp; 11, 64-bit &middot; ${LAUNCHER_SIZE}</p>
   </div>
@@ -221,7 +239,7 @@ const home = {
 </div></section>
 
 <section id="apps"><div class="wrap">
-  <div class="section-head"><span class="eyebrow">Five apps, one launcher</span><h2>Everything in the suite</h2><p class="lede">Install only the apps you want. Each one gets its own shortcut, opens on its own and keeps itself up to date.</p></div>
+  <div class="section-head"><span class="eyebrow">Six apps, one launcher</span><h2>Everything in the suite</h2><p class="lede">Install only the apps you want. Each one gets its own shortcut, opens on its own and keeps itself up to date.</p></div>
   <div class="app-rows">${APPS.map(appRow).join('\n')}</div>
 </div></section>
 
@@ -240,7 +258,7 @@ ${band()}`,
 
 const download = {
   file: 'download.html', title: 'Download Crystal Suite', current: 'download',
-  description: `Download Crystal Suite ${LAUNCHER} for Windows 10 and 11: the free launcher for Photon, Prism, Cut, Facet and Quartz.`,
+  description: `Download Crystal Suite ${LAUNCHER} for Windows 10 and 11: the free launcher for Photon, Prism, Cut, Facet, Quartz and Onyx.`,
   body: `<section class="hero waved app-hero"><canvas class="waves" data-shape="low" aria-hidden="true"></canvas><div class="wrap">
   <span class="pill"><i></i>Version ${LAUNCHER} &middot; free</span>
   <h1>Download Crystal Suite</h1>
@@ -319,7 +337,7 @@ ${band()}`,
   };
 };
 function featureTitle(a) {
-  return { photon: 'A photo editor you already know', prism: 'The web, without the tracking', cut: 'Edit like it’s Vegas', facet: 'A desktop you’ll want to look at', quartz: 'Everything you do with PDFs' }[a.id];
+  return { photon: 'A photo editor you already know', prism: 'The web, without the tracking', cut: 'Edit like it’s Vegas', facet: 'A desktop you’ll want to look at', quartz: 'Everything you do with PDFs', onyx: 'Never miss the moment' }[a.id];
 }
 
 // ---------- write ----------
