@@ -69,16 +69,16 @@
     {
       "id": "onyx",
       "name": "Onyx",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "description": "Instant replay for games",
       "badge": "Ox",
       "color": "#b6ff5c",
       "bg": "#142106",
-      "url": "https://github.com/Enqrypted/crystal-suite/releases/download/onyx-v0.1.0/onyx-0.1.0.zip",
-      "size": 260563,
-      "sha256": "de5bcd29ac9568a8a4a95b17ec848082899901bfa415a25169086a7b63ed1947",
+      "url": "https://github.com/Enqrypted/crystal-suite/releases/download/onyx-v0.1.1/onyx-0.1.1.zip",
+      "size": 261242,
+      "sha256": "ab6c41a73b264e3b63025bb21bdeea9d19e8fe598e50a00340f776d914e1c8c3",
       "minLauncher": "0.2.0",
-      "notes": "Instant replay for your games: Onyx keeps the last two minutes of every game you have open in memory (Roblox and Roblox Studio included), and Ctrl+Shift+G saves the last 15 or 30 seconds, 1 or 2 minutes; with several games open, Tab picks which one. It starts with Windows in the tray once you have opened it. Clips are saved as MP4 at the resolution you choose, with game sound and optionally your microphone, and recording runs on your graphics card's video encoder, so games keep their frame rate."
+      "notes": "Click the Saved notice to see your clip: it has a Show in folder button that opens File Explorer with the clip selected. The notice stays up a little longer, and for as long as the pointer is on it; clicking it doesn't take the focus away from your game."
     }
   ]
 }
