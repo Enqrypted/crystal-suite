@@ -1,0 +1,67 @@
+/* The in-game overlay: the clip-length picker and the "saved" notice. The window is transparent and
+   click-through; only the card is drawn. */
+html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; }
+body {
+  --lime: #b6ff5c; --ink: #f2f5ee; --dim: #a9b1a2; --faint: #747d6e;
+  display: flex; justify-content: center; align-items: flex-start; padding-top: 10px; box-sizing: border-box;
+  font: 13px/1.35 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; color: var(--ink);
+  -webkit-font-smoothing: antialiased; user-select: none; cursor: default;
+}
+.card {
+  min-width: 300px; max-width: 560px; box-sizing: border-box; padding: 14px 16px 13px; border-radius: 18px;
+  background: linear-gradient(180deg, rgba(26, 30, 23, .96), rgba(14, 16, 12, .96));
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .07), 0 1px 0 rgba(255, 255, 255, .06) inset, 0 14px 34px rgba(0, 0, 0, .5);
+  opacity: 0; transform: translateY(-10px) scale(.98); transition: opacity .16s ease, transform .2s cubic-bezier(.2, .9, .3, 1.2);
+}
+.card:empty { display: none; }
+.card.show { opacity: 1; transform: none; }
+.card.hiding { opacity: 0; transform: translateY(-6px); transition: opacity .2s ease, transform .2s ease; }
+
+/* picker */
+.head { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 11px; }
+.rec { display: flex; align-items: center; gap: 8px; min-width: 0; font-weight: 600; }
+.rec .dot { width: 8px; height: 8px; border-radius: 50%; background: #ff4d4d; box-shadow: 0 0 0 3px rgba(255, 77, 77, .18); flex: none; animation: pulse 1.6s ease-in-out infinite; }
+.rec .game { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.title { color: var(--dim); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; font-weight: 600; flex: none; }
+@keyframes pulse { 50% { opacity: .45; } }
+
+.games { display: flex; gap: 6px; margin-bottom: 10px; overflow: hidden; }
+.gm {
+  flex: 1 1 0; min-width: 0; padding: 7px 11px; border-radius: 10px; background: rgba(255, 255, 255, .05);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .05); display: flex; flex-direction: column;
+}
+.gm b { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gm small { color: var(--faint); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gm.on { background: rgba(182, 255, 92, .14); box-shadow: inset 0 0 0 1.5px var(--lime); }
+.gm.on b { color: var(--lime); }
+.lengths { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.len {
+  position: relative; height: 54px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: rgba(255, 255, 255, .06); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .05); transition: background .12s, transform .12s;
+}
+.len b { font: 700 19px "Segoe UI Variable Display", "Segoe UI", sans-serif; letter-spacing: -.01em; }
+.len small { color: var(--faint); font-size: 11px; margin-top: -1px; }
+.len .key {
+  position: absolute; top: 6px; left: 7px; width: 15px; height: 15px; border-radius: 4px; display: grid; place-items: center;
+  font: 600 10px "Segoe UI", sans-serif; color: var(--faint); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .14);
+}
+.len.on { background: var(--lime); color: #0c1207; box-shadow: 0 6px 18px rgba(182, 255, 92, .28); transform: translateY(-1px); }
+.len.on small { color: rgba(12, 18, 7, .7); }
+.len.on .key { color: rgba(12, 18, 7, .75); box-shadow: inset 0 0 0 1px rgba(12, 18, 7, .35); }
+.len.short:not(.on) b { color: var(--dim); }
+
+.bar { height: 3px; border-radius: 2px; background: rgba(255, 255, 255, .08); margin: 12px 0 9px; overflow: hidden; }
+.bar i { display: block; height: 100%; width: 100%; background: var(--lime); transform-origin: left; }
+.hint { display: flex; flex-wrap: wrap; gap: 4px 14px; color: var(--faint); font-size: 11.5px; }
+.hint kbd { font: 600 10.5px "Segoe UI", sans-serif; color: var(--dim); padding: 1px 5px; border-radius: 4px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .16); margin-right: 3px; }
+
+/* notice */
+.toast { display: flex; align-items: center; gap: 12px; padding-right: 6px; }
+.badge { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; flex: none; background: rgba(182, 255, 92, .16); color: var(--lime); }
+.badge svg { width: 18px; height: 18px; }
+.toast.info .badge { background: rgba(255, 255, 255, .1); color: var(--ink); }
+.toast.error .badge { background: rgba(255, 92, 92, .16); color: #ff7a72; }
+.t-title { font: 600 15px "Segoe UI Variable Display", "Segoe UI", sans-serif; }
+.t-sub { color: var(--dim); font-size: 12.5px; max-width: 440px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.spin { animation: spin .9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }

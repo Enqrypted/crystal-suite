@@ -58,6 +58,15 @@ const CONTENTS = {
       { name: 'THIRD_PARTY_NOTICES.md', data: fs.readFileSync(path.join(ROOT, 'apps', 'quartz', 'THIRD_PARTY_NOTICES.md')) },
     ];
   },
+  // a module app: main process + preload + the window and in-game overlay UI + OnyxHelper.exe
+  onyx: () => {
+    need(path.join(ROOT, 'dist', 'onyx', 'main.cjs'));
+    need(path.join(ROOT, 'dist', 'onyx', 'OnyxHelper.exe'));
+    return [
+      ...tree(path.join(ROOT, 'dist', 'onyx')),
+      { name: 'THIRD_PARTY_NOTICES.md', data: fs.readFileSync(path.join(ROOT, 'apps', 'onyx', 'THIRD_PARTY_NOTICES.md')) },
+    ];
+  },
 };
 
 function need(file) {

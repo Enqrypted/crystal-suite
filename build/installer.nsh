@@ -12,6 +12,8 @@
     Delete "$SMPROGRAMS\Facet.lnk"
     Delete "$DESKTOP\Quartz.lnk"
     Delete "$SMPROGRAMS\Quartz.lnk"
+    Delete "$DESKTOP\Onyx.lnk"
+    Delete "$SMPROGRAMS\Onyx.lnk"
     ; Facet: starting with Windows, and the Windows desktop icons if Facet hid them
     DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "CrystalSuite.Facet"
     DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run" "CrystalSuite.Facet"
@@ -28,6 +30,11 @@
       FindClose $0
       Delete "$APPDATA\Crystal Suite\Facet\icons-hidden"
     ${EndIf}
+    ; Onyx: starting with Windows
+    DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "CrystalSuite.Onyx"
+    DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run" "CrystalSuite.Onyx"
+    nsExec::Exec 'schtasks /delete /tn "Crystal Suite Onyx" /f'
+    Pop $0
     ; Prism's registration as a web browser (Settings > Default apps)
     DeleteRegValue HKCU "Software\RegisteredApplications" "Prism"
     DeleteRegKey HKCU "Software\Clients\StartMenuInternet\Prism"

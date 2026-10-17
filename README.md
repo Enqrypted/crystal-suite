@@ -11,6 +11,7 @@ The **Crystal Suite** app is a launcher (like Creative Cloud) that installs, upd
 | **Cut** | ✅ Available (install it from the launcher) | Sony Vegas Pro |
 | **Facet** | ✅ Available (install it from the launcher) | iPhone-style folders and widgets for the Windows desktop |
 | **Quartz** | ✅ Available (install it from the launcher) | Adobe Acrobat |
+| **Onyx** | ✅ Available (install it from the launcher) | NVIDIA ShadowPlay's instant replay |
 | Vector | Planned | Illustrator |
 | Darkroom | Planned | Lightroom |
 | Motion | Planned | After Effects |
@@ -20,7 +21,7 @@ The **Crystal Suite** app is a launcher (like Creative Cloud) that installs, upd
 
 Get **`CrystalSuite-Setup-x.y.z.exe`** from the [latest release](https://github.com/Enqrypted/crystal-suite/releases/latest) (or the portable **`CrystalSuite-Portable-x.y.z.exe`**, no installation needed).
 
-Crystal Suite is a launcher, like Creative Cloud: open it, click **Install** next to an app and it downloads (Photon, Cut and Facet are under 300 KB, Prism and Quartz about 3 MB, because the apps share the launcher's runtime), verifies and installs it. From then on:
+Crystal Suite is a launcher, like Creative Cloud: open it, click **Install** next to an app and it downloads (Photon, Cut, Facet and Onyx are under 300 KB, Prism and Quartz about 3 MB, because the apps share the launcher's runtime), verifies and installs it. From then on:
 
 - **Open** starts the app; each app also gets its own Start-menu (and optional desktop) shortcut and taskbar icon.
 - New versions show up under **Updates** (with a count in the sidebar). They install in the background automatically unless you turn that off in **Settings**; an app that is open keeps running and switches to the new version the next time you start it.
@@ -43,6 +44,7 @@ npm run prism      # builds Prism from source and opens it as a standalone app
 npm run cut        # builds Cut from source and opens it
 npm run facet      # builds Facet from source and runs it (widgets on your desktop + its window)
 npm run quartz     # builds Quartz from source and opens it (add a PDF path to open it: npx electron apps/quartz/standalone/main.cjs file.pdf)
+npm run onyx       # builds Onyx from source and runs it (instant replay in the background + its window)
 npm run dev        # Photon in your browser with hot reload: http://localhost:5173
 ```
 
@@ -80,6 +82,11 @@ git commit -am "Facet <v>" && git push
 npm run pack:apps
 gh release create quartz-v<v> release/apps/quartz-<v>.zip --title "Quartz <v>" --latest=false
 git commit -am "Quartz <v>" && git push
+
+# A new Onyx version: bump "version" in apps/onyx/app.json, then
+npm run pack:apps
+gh release create onyx-v<v> release/apps/onyx-<v>.zip --title "Onyx <v>" --latest=false
+git commit -am "Onyx <v>" && git push
 
 # A new Prism version: bump "version" in apps/prism/app.json, then
 npm run pack:apps && npm run dist:prism  # the launcher package + the standalone Prism-Setup/Portable exes
@@ -141,6 +148,18 @@ A PDF reader and editor, like Adobe Acrobat: fast, tabbed, and everything stays 
 - **Default PDF app** — once you've opened it, Quartz is listed under **Open with** for PDFs and in Settings › Default apps (your current default is left alone). To make it the default, pick it with **Always** in Open with › Choose another app, or use Tools › Make Quartz the default PDF app. Uninstalling Quartz removes its entries.
 
 Quartz is built on Mozilla's [PDF.js](https://github.com/mozilla/pdf.js) (the PDF engine in Firefox) for reading, forms and annotations, and [pdf-lib](https://github.com/Hopding/pdf-lib) for page editing.
+
+## Onyx features
+
+Instant replay for games: Onyx keeps the last two minutes of every game you have open in memory, so when something worth keeping happens you save it after the fact.
+
+- **Save what just happened** — press **Ctrl+Shift+G** in game and pick 15 seconds, 30 seconds, 1 minute or 2 minutes (press the hotkey again for a longer one, or 1–4; it saves on its own after a moment). With several games open, **Tab** picks which one. A small notice and a soft chime confirm the save, and the clip lands in `Videos\Onyx` as an MP4 that plays everywhere.
+- **Finds your games by itself** — anything Windows knows as a game, anything started from Steam, Epic, Riot, Battle.net, EA, Ubisoft or GOG, games in their library folders, well-known games (Roblox and Roblox Studio, Minecraft, Valorant, Fortnite, CS2…), games built with Unity, Unreal and other engines, and anything else running fullscreen. Browsers, video players and everyday apps are left alone, and you can mark any app as a game or not. Or record one window, or a whole screen.
+- **Barely touches your frame rate** — Windows captures the game's window on the graphics card, the card's own video encoder (NVIDIA NVENC, AMD or Intel) compresses it, and only the compressed video sits in memory (about 180 MB for two minutes at 1080p). Nothing is written to disk until you save.
+- **Your choice of size** — save at the game's own size or scaled to 2160p, 1440p, 1080p, 720p or 480p, at 30 or 60 fps and three quality levels; game and PC sound, and your microphone if you like.
+- **Clips at hand** — the Onyx window lists your clips with previews and plays them, shows what is being recorded and has save buttons too. It starts with Windows in the tray, so it's ready whenever you play.
+
+The capture and encoding are done by a small helper (`OnyxHelper.exe`, about 70 KB) compiled from [apps/onyx/native](apps/onyx/native) with the C# compiler that ships with Windows.
 
 ## Prism features
 
@@ -211,6 +230,12 @@ apps/quartz/            Quartz (TypeScript)
                         PDF.js data files, printing, default-PDF-app registration
   src/web/              the reader/editor: tabs and viewers (PDF.js), sidebar, organizer (pdf-lib), signing,
                         combine/split/export tools, printing
+apps/onyx/              Onyx (TypeScript + C#)
+  src/main/             main process: finding games, the hotkey and picker, saving (MP4 via Mediabunny), clips,
+                        start with Windows, the Onyx window and tray
+  src/web/              the Onyx window and the in-game overlay (picker and notices)
+  native/               OnyxHelper.exe: window capture, GPU conversion and hardware H.264 encoding, sound, the
+                        replay buffers
 apps/prism/             Prism (TypeScript)
   src/main/             main process: windows & tabs, profiles/privacy, ad blocking, downloads, history,
                         bookmarks, permissions, menus, default-browser registration, prism:// pages
@@ -225,6 +250,7 @@ scripts/dist-prism.cjs  builds the standalone Prism installers
 scripts/build-cut.cjs   bundles Cut (esbuild + vite)
 scripts/build-facet.cjs bundles Facet (esbuild + vite) and compiles FacetHelper.exe
 scripts/build-quartz.cjs bundles Quartz (esbuild + vite) with PDF.js's data files
+scripts/build-onyx.cjs  bundles Onyx (esbuild + vite) and compiles OnyxHelper.exe
 scripts/pack-apps.cjs   packages apps into release zips and writes catalog.json
 scripts/build-site.cjs  builds the website in site/ (home, download and app pages; npm run site)
 site/                   the website: generated pages, style.css, site.js and the app screenshots in img/
@@ -235,4 +261,4 @@ Each layer is a canvas positioned in document space; undo is snapshot-based (str
 
 ## License
 
-MIT — see [LICENSE](LICENSE). PSD reading/writing uses [ag-psd](https://github.com/Agamnentzar/ag-psd) (MIT). Prism's ad blocking uses [@ghostery/adblocker](https://github.com/ghostery/adblocker) (MPL-2.0) — see [apps/prism/THIRD_PARTY_NOTICES.md](apps/prism/THIRD_PARTY_NOTICES.md). Cut reads and writes media with [Mediabunny](https://github.com/Vanilagy/mediabunny) (MPL-2.0) — see [apps/cut/THIRD_PARTY_NOTICES.md](apps/cut/THIRD_PARTY_NOTICES.md). Facet uses no third-party code. Quartz uses [PDF.js](https://github.com/mozilla/pdf.js) (Apache-2.0) and [pdf-lib](https://github.com/Hopding/pdf-lib) (MIT) — see [apps/quartz/THIRD_PARTY_NOTICES.md](apps/quartz/THIRD_PARTY_NOTICES.md). "Photoshop" and "Acrobat" are trademarks of Adobe, "Chrome" of Google, "Vegas Pro" of MAGIX and "iPhone" of Apple; Crystal Suite is an independent project and is not affiliated with any of them.
+MIT — see [LICENSE](LICENSE). PSD reading/writing uses [ag-psd](https://github.com/Agamnentzar/ag-psd) (MIT). Prism's ad blocking uses [@ghostery/adblocker](https://github.com/ghostery/adblocker) (MPL-2.0) — see [apps/prism/THIRD_PARTY_NOTICES.md](apps/prism/THIRD_PARTY_NOTICES.md). Cut reads and writes media with [Mediabunny](https://github.com/Vanilagy/mediabunny) (MPL-2.0) — see [apps/cut/THIRD_PARTY_NOTICES.md](apps/cut/THIRD_PARTY_NOTICES.md). Facet uses no third-party code. Quartz uses [PDF.js](https://github.com/mozilla/pdf.js) (Apache-2.0) and [pdf-lib](https://github.com/Hopding/pdf-lib) (MIT) — see [apps/quartz/THIRD_PARTY_NOTICES.md](apps/quartz/THIRD_PARTY_NOTICES.md). Onyx writes its clips with [Mediabunny](https://github.com/Vanilagy/mediabunny) (MPL-2.0) — see [apps/onyx/THIRD_PARTY_NOTICES.md](apps/onyx/THIRD_PARTY_NOTICES.md). "Photoshop" and "Acrobat" are trademarks of Adobe, "Chrome" of Google, "Vegas Pro" of MAGIX, "iPhone" of Apple and "ShadowPlay" of NVIDIA; game names belong to their owners; Crystal Suite is an independent project and is not affiliated with any of them.
