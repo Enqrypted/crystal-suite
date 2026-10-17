@@ -65,6 +65,20 @@
       "sha256": "745b7eced6e14f7cfd3754231510cc9b7b47020ef7a8d5a032f339e35000ed19",
       "minLauncher": "0.2.0",
       "notes": "Text boxes can be resized: pick a size in the Size list, or select a text box and drag its corner handle. The colour and size controls for text, drawing and highlights now work (they were being ignored), and change the selected annotation when one is selected. A drawing made just before saving is no longer left out."
+    },
+    {
+      "id": "onyx",
+      "name": "Onyx",
+      "version": "0.1.0",
+      "description": "Instant replay for games",
+      "badge": "Ox",
+      "color": "#b6ff5c",
+      "bg": "#142106",
+      "url": "https://github.com/Enqrypted/crystal-suite/releases/download/onyx-v0.1.0/onyx-0.1.0.zip",
+      "size": 260563,
+      "sha256": "de5bcd29ac9568a8a4a95b17ec848082899901bfa415a25169086a7b63ed1947",
+      "minLauncher": "0.2.0",
+      "notes": "Instant replay for your games: Onyx keeps the last two minutes of every game you have open in memory (Roblox and Roblox Studio included), and Ctrl+Shift+G saves the last 15 or 30 seconds, 1 or 2 minutes; with several games open, Tab picks which one. It starts with Windows in the tray once you have opened it. Clips are saved as MP4 at the resolution you choose, with game sound and optionally your microphone, and recording runs on your graphics card's video encoder, so games keep their frame rate."
     }
   ]
 }
