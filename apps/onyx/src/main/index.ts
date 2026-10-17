@@ -583,7 +583,8 @@ class Onyx {
       writeJson(this.clipsFile, meta);
       const got = Math.round(m.duration);
       const short = got + 1 < seconds;
-      this.toast('ok', `Saved ${short ? `${got} seconds` : lengthLabel(seconds)}`, short ? `${target.name} · only ${got} s recorded so far` : target.name, 2600, this.settings.sound, target.monitor);
+      this.toast('ok', `Saved ${short ? `${got} seconds` : lengthLabel(seconds)}`, short ? `${target.name} · only ${got} s recorded so far` : target.name, 5000, this.settings.sound, target.monitor,
+        { label: 'Show in folder', run: () => shell.showItemInFolder(file) });
       this.main?.webContents.send('onyx:clips-changed');
       return { ok: true, path: file };
     } catch (e) {
@@ -610,7 +611,9 @@ class Onyx {
     this.overlay = win;
     this.overlayReady = false;
     win.setAlwaysOnTop(true, 'screen-saver');
-    win.setIgnoreMouseEvents(true);
+    // clicks go through to the game; the page still sees the mouse move, and takes clicks only while the pointer
+    // is over a notice with a button (it says so through onyx:overlay-hover)
+    win.setIgnoreMouseEvents(true, { forward: true });
     // left out of screen recordings (Onyx's own included)
     win.setContentProtection(true);
     win.loadFile(path.join(this.host.appDir, 'web', 'overlay.html'));
@@ -619,11 +622,36 @@ class Onyx {
       if (this.overlayQueue) { const m = this.overlayQueue; this.overlayQueue = null; this.showOverlay(m); }
     });
     win.webContents.on('will-navigate', (e) => e.preventDefault());
+    win.webContents.ipc.on('onyx:overlay-hover', (_e, on: boolean) => this.overlayHover(!!on));
+    win.webContents.ipc.handle('onyx:overlay-action', () => {
+      const run = this.toastAction;
+      this.toastAction = null;
+      this.showOverlay({ kind: 'hide' });
+      run?.();
+    });
     win.on('closed', () => { if (this.overlay === win) { this.overlay = null; this.overlayReady = false; } });
   }
 
-  private toast(tone: 'ok' | 'info' | 'error', title: string, sub: string, ms: number, chime = false, monitor?: Target['monitor']) {
-    this.showOverlay({ kind: 'toast', tone, title, sub, ms, chime }, monitor);
+  /** What the button on the notice showing does (Show in folder, after a save). */
+  private toastAction: (() => void) | null = null;
+  private overlayHovered = false;
+
+  /** The pointer is over the notice's button (it takes the click) or has left it (clicks go to the game again). */
+  private overlayHover(on: boolean) {
+    const win = this.overlay;
+    if (!win || win.isDestroyed()) return;
+    on = on && !!this.toastAction;
+    if (on === this.overlayHovered) return;
+    this.overlayHovered = on;
+    win.setIgnoreMouseEvents(!on, { forward: true });
+    // the notice stays while the pointer is on it, and goes a moment after it leaves
+    if (this.overlayTimer) { clearTimeout(this.overlayTimer); this.overlayTimer = null; }
+    if (!on && this.toastAction) this.overlayTimer = setTimeout(() => this.showOverlay({ kind: 'hide' }), 1500);
+  }
+
+  private toast(tone: 'ok' | 'info' | 'error', title: string, sub: string, ms: number, chime = false, monitor?: Target['monitor'], action?: { label: string; run: () => void }) {
+    this.toastAction = action?.run ?? null;
+    this.showOverlay({ kind: 'toast', tone, title, sub, ms, chime, action: action?.label }, monitor);
   }
 
   private showOverlay(m: OverlayMessage, monitor?: Target['monitor']) {
@@ -632,6 +660,11 @@ class Onyx {
     const win = this.overlay!;
     if (!this.overlayReady) { this.overlayQueue = m; return; }
     if (this.overlayTimer) { clearTimeout(this.overlayTimer); this.overlayTimer = null; }
+    // anything but a notice with a button: clicks go through again
+    if (m.kind !== 'toast' || !m.action) {
+      if (m.kind !== 'toast') this.toastAction = null;
+      if (this.overlayHovered) { this.overlayHovered = false; win.setIgnoreMouseEvents(true, { forward: true }); }
+    }
     win.webContents.send('onyx:overlay', m);
     if (m.kind === 'hide') { this.overlayTimer = setTimeout(() => { if (!this.picker) win.hide(); }, 250); return; }
     // top middle of the screen with the game in front (or the one with the mouse)
@@ -644,7 +677,7 @@ class Onyx {
     if (!win.isVisible()) win.showInactive();
     win.setAlwaysOnTop(true, 'screen-saver');
     win.moveTop();
-    if (m.kind === 'toast') this.overlayTimer = setTimeout(() => this.showOverlay({ kind: 'hide' }), m.ms);
+    if (m.kind === 'toast' && !this.overlayHovered) this.overlayTimer = setTimeout(() => this.showOverlay({ kind: 'hide' }), m.ms);
   }
 
   // ---------- hotkey ----------

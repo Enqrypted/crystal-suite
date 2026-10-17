@@ -1,7 +1,9 @@
 // The in-game overlay page: shows the clip-length picker and notices as the main process asks.
 import type { OverlayMessage } from '../shared/types';
 
-const native = (window as unknown as { onyxNative: { onOverlay(cb: (m: OverlayMessage) => void): void } }).onyxNative;
+const native = (window as unknown as {
+  onyxNative: { onOverlay(cb: (m: OverlayMessage) => void): void; overlayHover(on: boolean): void; overlayAction(): Promise<void> };
+}).onyxNative;
 const card = document.getElementById('card')!;
 let hideTimer = 0;
 
@@ -15,6 +17,7 @@ const ICONS = {
   busy: '<svg viewBox="0 0 20 20" class="spin"><path d="M10 3a7 7 0 1 1-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
   note: '<svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10 9v5M10 6.2v.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
   error: '<svg viewBox="0 0 20 20"><path d="M10 5.5v5.5M10 14.2v.1" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
+  folder: '<svg viewBox="0 0 16 16"><path d="M2 4.5h4l1.3 1.5H14v6.5H2z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>',
 };
 
 function show() {
@@ -25,9 +28,27 @@ function show() {
 
 function hide() {
   card.classList.add('hiding');
-  card.classList.remove('show');
+  card.classList.remove('show', 'clickable');
+  setHover(false);
   hideTimer = window.setTimeout(() => { card.innerHTML = ''; }, 220);
 }
+
+// A notice with a button (Show in folder) can be clicked. The window lets clicks through to the game, but the
+// page still sees the pointer move: over the notice it asks for the clicks, off it gives them back.
+let hovering = false;
+function setHover(on: boolean) {
+  if (on === hovering) return;
+  hovering = on;
+  card.classList.toggle('hover', on);
+  native.overlayHover(on);
+}
+document.addEventListener('mousemove', (e) => setHover(card.classList.contains('clickable') && card.contains(e.target as Node)));
+document.addEventListener('mouseleave', () => setHover(false));
+card.addEventListener('click', () => {
+  if (!card.classList.contains('clickable')) return;
+  setHover(false);
+  native.overlayAction();
+});
 
 function picker(m: Extract<OverlayMessage, { kind: 'picker' }>) {
   const fresh = !card.querySelector('.lengths') || !card.classList.contains('show');
@@ -56,7 +77,9 @@ function picker(m: Extract<OverlayMessage, { kind: 'picker' }>) {
 
 function toast(m: Extract<OverlayMessage, { kind: 'toast' }>) {
   const icon = m.tone === 'ok' ? ICONS.ok : m.tone === 'error' ? ICONS.error : m.title.endsWith('…') ? ICONS.busy : ICONS.note;
-  card.innerHTML = `<div class="toast ${m.tone}"><div class="badge">${icon}</div><div><div class="t-title">${esc(m.title)}</div>${m.sub ? `<div class="t-sub">${esc(m.sub)}</div>` : ''}</div></div>`;
+  card.innerHTML = `<div class="toast ${m.tone}"><div class="badge">${icon}</div><div class="t-text"><div class="t-title">${esc(m.title)}</div>${m.sub ? `<div class="t-sub">${esc(m.sub)}</div>` : ''}</div>${m.action ? `<span class="act">${ICONS.folder}${esc(m.action)}</span>` : ''}</div>`;
+  card.classList.toggle('clickable', !!m.action);
+  if (!m.action) setHover(false);
   show();
   if (m.chime) chime();
 }
@@ -82,6 +105,7 @@ function chime() {
 }
 
 native.onOverlay((m) => {
+  if (m.kind !== 'toast') { card.classList.remove('clickable'); setHover(false); }
   if (m.kind === 'picker') picker(m);
   else if (m.kind === 'toast') toast(m);
   else hide();

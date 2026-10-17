@@ -23,4 +23,7 @@ contextBridge.exposeInMainWorld('onyxNative', {
   onState: (cb: (s: unknown) => void) => { ipcRenderer.on('onyx:state', (_e, s) => cb(s)); },
   onClipsChanged: (cb: () => void) => { ipcRenderer.on('onyx:clips-changed', () => cb()); },
   onOverlay: (cb: (m: unknown) => void) => { ipcRenderer.on('onyx:overlay', (_e, m) => cb(m)); },
+  /** The overlay: the pointer is over (or has left) the notice's button, and its button was clicked. */
+  overlayHover: (on: boolean) => ipcRenderer.send('onyx:overlay-hover', !!on),
+  overlayAction: call('onyx:overlay-action'),
 });

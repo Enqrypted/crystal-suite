@@ -63,5 +63,15 @@ body {
 .toast.error .badge { background: rgba(255, 92, 92, .16); color: #ff7a72; }
 .t-title { font: 600 15px "Segoe UI Variable Display", "Segoe UI", sans-serif; }
 .t-sub { color: var(--dim); font-size: 12.5px; max-width: 440px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.t-text { min-width: 0; }
+/* a notice with a button: the whole card is the button */
+.card.clickable { cursor: pointer; transition: opacity .16s ease, transform .2s cubic-bezier(.2, .9, .3, 1.2), box-shadow .15s; }
+.card.clickable.hover { box-shadow: 0 0 0 1.5px rgba(182, 255, 92, .55), 0 1px 0 rgba(255, 255, 255, .06) inset, 0 14px 34px rgba(0, 0, 0, .5); }
+.act {
+  flex: none; display: inline-flex; align-items: center; gap: 7px; height: 32px; margin-left: 10px; padding: 0 13px; border-radius: 16px;
+  background: rgba(182, 255, 92, .14); color: var(--lime); font-weight: 600; font-size: 12.5px; transition: background .12s;
+}
+.act svg { width: 15px; height: 15px; }
+.card.hover .act { background: var(--lime); color: #0c1207; }
 .spin { animation: spin .9s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }

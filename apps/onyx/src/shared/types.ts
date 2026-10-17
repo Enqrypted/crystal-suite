@@ -102,5 +102,5 @@ export interface WindowChoice {
 
 export type OverlayMessage =
   | { kind: 'picker'; lengths: number[]; index: number; ms: number; hotkey: string; games: { name: string; sub: string; buffered: number }[]; game: number }
-  | { kind: 'toast'; tone: 'ok' | 'info' | 'error'; title: string; sub: string; ms: number; chime: boolean }
+  | { kind: 'toast'; tone: 'ok' | 'info' | 'error'; title: string; sub: string; ms: number; chime: boolean; action?: string }
   | { kind: 'hide' };
