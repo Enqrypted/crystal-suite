@@ -1,7 +1,7 @@
 {
   "name": "crystal-suite",
   "productName": "Crystal Suite",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Crystal Suite - a free, open-source, local creative suite. The launcher downloads and updates its apps; Photon is its Photoshop-style image editor.",
   "license": "MIT",
   "private": true,

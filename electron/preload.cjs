@@ -8,4 +8,6 @@ contextBridge.exposeInMainWorld('photonNative', {
   readFile: (path) => ipcRenderer.invoke('read-file', path),
   chooseFolder: (o) => ipcRenderer.invoke('choose-folder', o),
   onOpenPaths: (cb) => ipcRenderer.on('open-paths', (_e, paths) => cb(paths)),
+  /** The app asks about unsaved work itself: closing the window calls `cb` instead of showing the generic prompt. */
+  onCloseRequest: (cb) => { ipcRenderer.send('app:handles-close'); ipcRenderer.on('app:close-request', () => cb()); },
 });

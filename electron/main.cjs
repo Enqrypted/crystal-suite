@@ -179,6 +179,10 @@ function trackWindow(id, win, name, ico) {
   pushState();
 }
 
+/** App windows whose page asks about unsaved work itself (it said so through onCloseRequest). */
+const ownClosePrompt = new WeakSet();
+ipcMain.on('app:handles-close', (e) => { const w = BrowserWindow.fromWebContents(e.sender); if (w) ownClosePrompt.add(w); });
+
 function createAppWindow(id, entry, m, files, icons) {
   const w = (m && typeof m.window === 'object' && m.window) || {};
   const num = (v, d) => (Number.isFinite(v) && v >= 200 && v <= 10000 ? v : d);
@@ -193,8 +197,10 @@ function createAppWindow(id, entry, m, files, icons) {
   if (w.maximize !== false) win.maximize();
   win.once('ready-to-show', () => win.show());
   win.loadFile(entry);
-  // Apps cancel unload when documents have unsaved changes; ask the user.
+  // Apps cancel unload when documents have unsaved changes. Apps that ask about them themselves (Photon: Save /
+  // Don't Save / Cancel per document) get the request; for the others, ask here.
   win.webContents.on('will-prevent-unload', (e) => {
+    if (ownClosePrompt.has(win)) { win.webContents.send('app:close-request'); return; }
     const choice = dialog.showMessageBoxSync(win, {
       type: 'warning', buttons: ['Quit Without Saving', 'Cancel'], defaultId: 1, cancelId: 1,
       title: name, message: 'You have unsaved changes.', detail: 'If you quit now, your changes will be lost.',
