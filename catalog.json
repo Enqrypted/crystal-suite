@@ -8,13 +8,13 @@
     {
       "id": "photon",
       "name": "Photon",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "description": "Photo editing, retouching & compositing",
-      "url": "https://github.com/Enqrypted/crystal-suite/releases/download/photon-v0.1.0/photon-0.1.0.zip",
-      "size": 274790,
-      "sha256": "a95fd06bd747af98a64bff67d83ca3b6df130e12115d1dabadb80dbe58fb16f3",
+      "url": "https://github.com/Enqrypted/crystal-suite/releases/download/photon-v0.2.0/photon-0.2.0.zip",
+      "size": 289972,
+      "sha256": "9c9c8c436cc28d75efa2928ea3c34668d245785c0b95d4760c46f3d074aea8c2",
       "minLauncher": "0.1.0",
-      "notes": "First release: layers & groups, selections (Magic Wand, Quick Selection, lassos), Free Transform, 27 blend modes, adjustment layers, filters, layer styles, PSD open/save and Export Layer As."
+      "notes": "Bevel & Emboss, Satin and Pattern Overlay styles; pattern fill layers, Fill with Pattern and Define Pattern; Warp; Edit › Fade; Paste Into; Distribute; Replace Color; Patch, Background Eraser, Pattern Stamp and Color Sampler tools; Save a Copy. Closing Photon asks to save each unsaved document (the window close button needs Crystal Suite 0.2.1)."
     },
     {
       "id": "prism",
