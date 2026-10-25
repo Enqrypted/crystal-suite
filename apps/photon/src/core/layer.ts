@@ -47,6 +47,7 @@ export interface TextData {
   fauxItalic?: boolean;
   antialias?: boolean;
   boxWidth?: number;   // paragraph text width (0/undefined = point text)
+  boxHeight?: number;  // paragraph text height: lines that don't fit are hidden (undefined = grows with the text)
   /** canvas padding used at last render (layer.x + pad = text box left) */
   pad?: number;
 }

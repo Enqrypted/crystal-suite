@@ -41,10 +41,13 @@ export function layoutLines(ctx: CanvasRenderingContext2D, t: TextData): string[
   return out;
 }
 
-/** Render the text layer into a fresh canvas, keeping its anchor (top-left of text box) fixed. */
-export function renderTextLayer(L: Layer) {
+/**
+ * Render the text layer into a fresh canvas, keeping its anchor (top-left of text box) fixed.
+ * Returns true when lines overflow a paragraph box with a set height (they are hidden).
+ */
+export function renderTextLayer(L: Layer): boolean {
   const t = L.text;
-  if (!t) return;
+  if (!t) return false;
   const measure = ctx2d(createCanvas(1, 1));
   measure.font = cssFont(t);
   (measure as any).letterSpacing = `${(t.tracking / 1000) * t.size}px`;
@@ -52,7 +55,8 @@ export function renderTextLayer(L: Layer) {
   const lh = t.size * t.leading;
   const widths = lines.map((l) => measure.measureText(l || ' ').width);
   const boxW = t.boxWidth ?? Math.max(1, ...widths);
-  const boxH = Math.max(lh, lines.length * lh);
+  const fixedH = t.boxWidth && t.boxHeight ? t.boxHeight : 0;
+  const boxH = fixedH || Math.max(lh, lines.length * lh);
   const pad = Math.ceil(t.size * 0.6) + 4;
   const anchorX = L.x + (t.pad ?? pad), anchorY = L.y + (t.pad ?? pad);
   const c = createCanvas(boxW + pad * 2, boxH + pad * 2);
@@ -64,6 +68,7 @@ export function renderTextLayer(L: Layer) {
   const m = x.measureText('Hg');
   const fa = m.fontBoundingBoxAscent ?? t.size * 0.8, fd = m.fontBoundingBoxDescent ?? t.size * 0.2;
   lines.forEach((line, i) => {
+    if (fixedH && (i + 1) * lh > fixedH + 0.5) return; // overflows the paragraph box, like Photoshop
     const w = widths[i];
     const lx = pad + (t.align === 'center' ? (boxW - w) / 2 : t.align === 'right' ? boxW - w : 0);
     const by = pad + i * lh + (lh - (fa + fd)) / 2 + fa;
@@ -80,6 +85,7 @@ export function renderTextLayer(L: Layer) {
   L.y = anchorY - pad;
   L.text = { ...t, pad };
   L.touch();
+  return !!fixedH && lines.length * lh > fixedH + 0.5;
 }
 
 export function textLayerName(t: TextData) {

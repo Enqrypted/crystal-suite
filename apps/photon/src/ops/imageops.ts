@@ -54,7 +54,7 @@ export function resizeImage(doc: Doc, w: number, hh: number, method: Resample, r
     } else if (L.kind === 'text' && L.text) {
       const pad = L.text.pad ?? 0;
       const ax = (L.x + pad) * sx, ay = (L.y + pad) * sy;
-      L.text = { ...L.text, size: L.text.size * Math.min(sx, sy), boxWidth: L.text.boxWidth ? L.text.boxWidth * sx : undefined, pad: 0 };
+      L.text = { ...L.text, size: L.text.size * Math.min(sx, sy), boxWidth: L.text.boxWidth ? L.text.boxWidth * sx : undefined, boxHeight: L.text.boxHeight ? L.text.boxHeight * sy : undefined, pad: 0 };
       L.x = ax; L.y = ay;
       renderTextLayer(L);
     } else if (L.kind === 'shape' && L.shape) {
