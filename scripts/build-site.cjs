@@ -31,10 +31,10 @@ const APPS = [
     ticks: ['Layers, groups, masks and all 27 blend modes', 'Curves, Levels, Camera Raw, Liquify and dozens of filters', 'Opens and saves PSD, PNG, JPEG, WebP and more'],
     shots: [['photon-layers.webp', 'Photon editing a layered landscape, with a Curves adjustment layer selected and the Layers panel open', 'A Curves adjustment layer over a grouped landscape, with Photoshop-style panels.']],
     features: [
-      ['Layers that behave', 'Pixel, type, shape, fill and adjustment layers, groups, masks, clipping masks and layer styles.'],
+      ['Layers that behave', 'Pixel, type, shape, fill and adjustment layers, groups, masks, clipping masks, and layer styles from Drop Shadow to Bevel & Emboss.'],
       ['Real selections', 'Magic Wand, Quick Selection, lassos, Color Range, Select Subject, Select and Mask, and Quick Mask.'],
       ['Adjustments and filters', 'Curves, Levels, Hue/Saturation and more as adjustment layers. Camera Raw, Liquify, blurs and distortions with a live preview.'],
-      ['A proper brush engine', 'Size, hardness, flow, pen pressure, jitter and smoothing, plus healing, clone and history brushes.'],
+      ['A proper brush engine', 'Size, hardness, flow, pen pressure, jitter and smoothing, plus healing, patch, clone, pattern stamp and history brushes.'],
       ['PSD in and out', 'Open PSDs with their layers and masks, save back to PSD, or keep everything editable in a Photon project.'],
       ['Export Layer As', 'Export each layer trimmed to its content as PNG, JPEG or WebP, with a live preview of the result.'],
     ],
