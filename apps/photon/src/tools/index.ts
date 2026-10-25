@@ -10,6 +10,8 @@ import { EyedropperTool, RulerTool, GradientTool, BucketTool } from './misc';
 import { TypeTool } from './type';
 import { ShapeTool } from './shape';
 import { PenTool, FreeformPenTool, AnchorTool, DirectSelectTool } from './pen';
+import { PatchTool, BackgroundEraserTool, PatternStampTool, ColorSamplerTool } from './extra';
+import { WarpTool } from './warp';
 
 export function initTools() {
   registerTools([
@@ -25,16 +27,20 @@ export function initTools() {
     new MagicWandTool(),
     new CropTool(),
     new EyedropperTool(),
+    new ColorSamplerTool(),
     new RulerTool(),
     new SpotHealTool(),
     new HealTool(),
+    new PatchTool(),
     new RedEyeTool(),
     new BrushTool(),
     new PencilTool(),
     new ColorReplaceTool(),
     new CloneStampTool(),
+    new PatternStampTool(),
     new HistoryBrushTool(),
     new EraserTool(),
+    new BackgroundEraserTool(),
     new MagicEraserTool(),
     new GradientTool(),
     new BucketTool(),
@@ -61,6 +67,7 @@ export function initTools() {
     new HandTool(),
     new ZoomTool(),
     new TransformTool(),
+    new WarpTool(),
   ], [
     'move', 'marquee', 'lasso', 'wand', 'crop', null,
     'eyedropper', 'heal', 'brush', 'clone', 'history', 'eraser', 'gradient', 'blur', 'dodge', null,

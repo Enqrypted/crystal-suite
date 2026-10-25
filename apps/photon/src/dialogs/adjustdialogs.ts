@@ -3,12 +3,15 @@
 import { app } from '../app';
 import { getAdjustment } from '../core/adjustments';
 import { applyLuts, autoRanges, clipRange, computeHistogram, stretchLUT } from '../core/adjustments-impl';
-import { blurCanvas, clamp, createCanvas, ctx2d, getImageData, rafThrottle } from '../core/util';
+import { blurCanvas, clamp, createCanvas, ctx2d, getImageData, hslToRgb, rafThrottle, rgbToHsl } from '../core/util';
 import { applyFilter, editableTarget, endPreview, FilterFn, pixelFn, previewFilter, targetImageData } from '../ops/target';
 import { h } from '../ui/dom';
 import { MenuItem, SEP } from '../ui/menutypes';
 import { checkbox, section, sliderField } from '../ui/widgets';
 import { openDialog } from './dialog';
+import { injectStyle } from '../ui/dom';
+
+injectStyle('replacecolor', '.rc-swatch { width: 34px; height: 22px; border: 1px solid var(--input-border); border-radius: 2px; }');
 
 export { histogramCanvas } from '../core/adjustments-impl';
 
@@ -227,6 +230,7 @@ export function adjustmentMenuItems(): MenuItem[] {
     { label: 'Shadows/Highlights...', enabled: hasDoc, action: () => { void openShadowsHighlights(); } },
     SEP,
     it('desaturate', 'Desaturate', 'Shift+Ctrl+U'),
+    { label: 'Replace Color...', enabled: hasDoc, action: () => { void openReplaceColor(); } },
     it('equalize', 'Equalize'),
   ];
 }
@@ -238,4 +242,106 @@ export function autoMenuItems(): MenuItem[] {
     { label: 'Auto Contrast', shortcut: 'Alt+Shift+Ctrl+L', enabled: hasDoc, action: () => { void autoContrast(); } },
     { label: 'Auto Color', shortcut: 'Shift+Ctrl+B', enabled: hasDoc, action: () => { void autoColor(); } },
   ];
+}
+
+// ---------- Replace Color ----------
+/** How much a pixel belongs to the sampled color: the same falloff as Select > Color Range. */
+function rangeWeight(r: number, g: number, b: number, c: { r: number; g: number; b: number }, f: number) {
+  const d = Math.max(Math.abs(r - c.r), Math.abs(g - c.g), Math.abs(b - c.b));
+  return d <= f ? 1 - (d / f) * (d / f) * 0.5 : Math.max(0, 1 - d / (f * 1.5)) * 0.5;
+}
+
+interface RC { color: { r: number; g: number; b: number }; fuzz: number; hue: number; sat: number; light: number }
+
+function replaceColorPixels(d: Uint8ClampedArray, p: RC) {
+  const f = Math.max(1, p.fuzz);
+  for (let i = 0; i < d.length; i += 4) {
+    if (!d[i + 3]) continue;
+    const w = rangeWeight(d[i], d[i + 1], d[i + 2], p.color, f);
+    if (w <= 0.002) continue;
+    const [hh, s, l] = rgbToHsl(d[i], d[i + 1], d[i + 2]);
+    const ns = clamp(s + (p.sat / 100) * (p.sat > 0 ? 1 - s : s), 0, 1);
+    const nl = clamp(l + (p.light / 100) * (p.light > 0 ? 1 - l : l), 0, 1);
+    const [r, g, b] = hslToRgb((hh + p.hue + 360) % 360, ns, nl);
+    d[i] += (r - d[i]) * w; d[i + 1] += (g - d[i + 1]) * w; d[i + 2] += (b - d[i + 2]) * w;
+  }
+}
+
+/** Image > Adjustments > Replace Color: pick a color in the preview, then shift its hue, saturation and lightness. */
+export async function openReplaceColor(): Promise<void> {
+  const doc = app.doc;
+  if (!doc || !(await editableTarget(doc, 'use the Replace Color command'))) return;
+  const src = targetImageData(doc);
+  if (!src) return;
+  const p: RC = { color: { ...app.fg }, fuzz: 40, hue: 0, sat: 0, light: 0 };
+  let preview = true, open = true, showSel = true;
+  // small copy of the pixels for the selection preview
+  const s = Math.min(1, 220 / Math.max(src.width, src.height));
+  const small = createCanvas(Math.max(1, Math.round(src.width * s)), Math.max(1, Math.round(src.height * s)));
+  const full = createCanvas(src.width, src.height);
+  ctx2d(full).putImageData(src, 0, 0);
+  ctx2d(small).drawImage(full, 0, 0, small.width, small.height);
+  const smallImg = getImageData(small);
+  const view = createCanvas(small.width, small.height);
+  view.style.cursor = 'crosshair';
+  const pickedSw = h('div', { class: 'rc-swatch', title: 'Sampled color' });
+  const resultSw = h('div', { class: 'rc-swatch', title: 'Result' });
+  const drawView = () => {
+    const x = ctx2d(view);
+    if (!showSel) { x.drawImage(small, 0, 0); return; }
+    const out = x.createImageData(view.width, view.height), od = out.data, sd = smallImg.data, f = Math.max(1, p.fuzz);
+    for (let i = 0; i < sd.length; i += 4) {
+      const v = Math.round(rangeWeight(sd[i], sd[i + 1], sd[i + 2], p.color, f) * (sd[i + 3] / 255) * 255);
+      od[i] = od[i + 1] = od[i + 2] = v; od[i + 3] = 255;
+    }
+    x.putImageData(out, 0, 0);
+  };
+  const drawSwatches = () => {
+    pickedSw.style.background = `rgb(${p.color.r},${p.color.g},${p.color.b})`;
+    const one = new Uint8ClampedArray([p.color.r, p.color.g, p.color.b, 255]);
+    replaceColorPixels(one, p);
+    resultSw.style.background = `rgb(${one[0]},${one[1]},${one[2]})`;
+  };
+  const filter = (): FilterFn => { const q = { ...p, color: { ...p.color } }; return pixelFn((img) => replaceColorPixels(img.data, q)); };
+  const update = rafThrottle(() => {
+    if (!open) return;
+    drawView();
+    drawSwatches();
+    if (preview) previewFilter(filter()); else endPreview();
+  });
+  view.addEventListener('pointerdown', (e) => {
+    const r = view.getBoundingClientRect();
+    const px = Math.min(small.width - 1, Math.floor(((e.clientX - r.left) / r.width) * small.width));
+    const py = Math.min(small.height - 1, Math.floor(((e.clientY - r.top) / r.height) * small.height));
+    const i = (py * small.width + px) * 4;
+    p.color = { r: smallImg.data[i], g: smallImg.data[i + 1], b: smallImg.data[i + 2] };
+    update();
+  });
+  const mode = h('div', { class: 'row' });
+  for (const [v, label] of [[true, 'Selection'], [false, 'Image']] as const) {
+    const id = `rc-${label}`;
+    const input = h('input', { type: 'radio', name: 'rc-view', id, class: 'ps-radio' }) as HTMLInputElement;
+    input.checked = showSel === v;
+    input.addEventListener('change', () => { showSel = v; update(); });
+    mode.append(input, h('label', { for: id, class: 'field-label' }, label));
+  }
+  const ok = await openDialog({
+    title: 'Replace Color', layout: 'side', width: 440,
+    content: h('div', { class: 'col' },
+      section('Selection',
+        h('div', { class: 'row' }, h('span', { class: 'field-label' }, 'Color:'), pickedSw, h('span', { class: 'field-label', style: { fontSize: '11px' } }, 'Click in the preview to sample')),
+        sliderField({ label: 'Fuzziness:', value: p.fuzz, min: 0, max: 200, onInput: (v) => { p.fuzz = v; update(); } }).el,
+        h('div', { class: 'preview-box', style: { height: '230px' } }, view),
+        mode),
+      section('Replacement',
+        sliderField({ label: 'Hue:', value: 0, min: -180, max: 180, onInput: (v) => { p.hue = v; update(); } }).el,
+        sliderField({ label: 'Saturation:', value: 0, min: -100, max: 100, onInput: (v) => { p.sat = v; update(); } }).el,
+        sliderField({ label: 'Lightness:', value: 0, min: -100, max: 100, onInput: (v) => { p.light = v; update(); } }).el,
+        h('div', { class: 'row' }, h('span', { class: 'field-label' }, 'Result:'), resultSw))),
+    preview: { checked: true, onToggle: (on) => { preview = on; update(); } },
+    onOpen: () => update(),
+  });
+  open = false;
+  if (ok) await applyFilter('Replace Color', filter());
+  else endPreview();
 }

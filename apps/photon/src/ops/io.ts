@@ -351,7 +351,9 @@ function applyLayerMeta(d: Doc, L: Layer, m: any) {
   if (m.shape) { L.shape = m.shape; }
   if (m.fill) { L.fill = m.fill; renderFillLayer(d, L); }
   if (m.adjustment) { L.adjustment = m.adjustment; L.canvas = createCanvas(1, 1); }
-  if (m.style && !m.styleBaked) L.style = m.style;
+  // baked effects are in a pixel layer's pixels; text, shape and fill layers are redrawn from their data, so their
+  // styles come back editable
+  if (m.style && (!m.styleBaked || L.kind === 'text' || L.kind === 'shape' || L.kind === 'fill')) L.style = m.style;
   if (m.isBackground !== undefined) { L.isBackground = m.isBackground; }
   if (L.kind === 'text' && L.text) { L.x = m.x ?? L.x; L.y = m.y ?? L.y; renderTextLayer(L); }
   if (L.kind === 'shape' && L.shape) { L.x = m.x ?? L.x; L.y = m.y ?? L.y; renderShapeLayer(L); }
@@ -506,7 +508,8 @@ async function encode(doc: Doc, fmt: SaveFormat, quality = 0.92, scale = 1): Pro
 
 const baseName = (n: string) => n.replace(/\.[^.]+$/, '');
 
-async function writeOut(doc: Doc, blob: Blob, fmt: SaveFormat, forceDialog: boolean, nameOverride?: string): Promise<boolean> {
+/** `copy`: Save a Copy — the document keeps its own name and file. */
+async function writeOut(doc: Doc, blob: Blob, fmt: SaveFormat, forceDialog: boolean, nameOverride?: string, copy = false): Promise<boolean> {
   const info = FORMAT_INFO[fmt];
   const suggested = `${nameOverride ?? baseName(doc.name)}.${info.ext}`;
   const data = await blob.arrayBuffer();
@@ -514,22 +517,22 @@ async function writeOut(doc: Doc, blob: Blob, fmt: SaveFormat, forceDialog: bool
     if (!forceDialog && doc.filePath && doc.filePath.toLowerCase().endsWith(`.${info.ext}`)) return native.writeFile(doc.filePath, data);
     const r = await native.saveFile({ defaultPath: doc.filePath ? doc.filePath.replace(/[^\\/]+$/, suggested) : suggested, filters: [{ name: info.name, extensions: [info.ext] }], data });
     if (!r) return false;
-    if (fmt === 'psd' || fmt === 'phtn') { doc.filePath = r.path; doc.name = r.name; doc.fileFormat = fmt; addRecentFile(r.name, r.path); }
+    if (!copy && (fmt === 'psd' || fmt === 'phtn')) { doc.filePath = r.path; doc.name = r.name; doc.fileFormat = fmt; addRecentFile(r.name, r.path); }
     return true;
   }
   if ((window as any).showSaveFilePicker) {
     try {
-      let handle = !forceDialog && doc.fileHandle && doc.fileFormat === fmt ? doc.fileHandle : null;
+      let handle = !forceDialog && !copy && doc.fileHandle && doc.fileFormat === fmt ? doc.fileHandle : null;
       if (!handle) handle = await (window as any).showSaveFilePicker({ suggestedName: suggested, types: [{ description: info.name, accept: { [info.mime]: [`.${info.ext}`] } }] });
       const w = await handle.createWritable();
       await w.write(blob);
       await w.close();
-      if (fmt === 'psd' || fmt === 'phtn') { doc.fileHandle = handle; doc.name = handle.name; doc.fileFormat = fmt; }
+      if (!copy && (fmt === 'psd' || fmt === 'phtn')) { doc.fileHandle = handle; doc.name = handle.name; doc.fileFormat = fmt; }
       return true;
     } catch (e: any) { if (e?.name === 'AbortError') return false; console.warn(e); }
   }
   downloadBlob(blob, suggested);
-  if (fmt === 'psd' || fmt === 'phtn') { doc.name = suggested; doc.fileFormat = fmt; }
+  if (!copy && (fmt === 'psd' || fmt === 'phtn')) { doc.name = suggested; doc.fileFormat = fmt; }
   return true;
 }
 
@@ -544,8 +547,8 @@ export async function save(doc = app.doc): Promise<boolean> {
   return ok;
 }
 
-/** Shift+Ctrl+S */
-export async function saveAs(doc = app.doc): Promise<boolean> {
+/** Shift+Ctrl+S; with `copy`, File > Save a Copy (Alt+Ctrl+S): writes a file without making it the document's. */
+export async function saveAs(doc = app.doc, copy = false): Promise<boolean> {
   if (!doc) return false;
   const fmtSel = select({
     options: [
@@ -554,12 +557,12 @@ export async function saveAs(doc = app.doc): Promise<boolean> {
     ],
     value: doc.fileFormat === 'phtn' ? 'phtn' : 'psd', width: 360,
   });
-  const nm = textInput({ value: baseName(doc.name), width: 360 });
+  const nm = textInput({ value: copy ? `${baseName(doc.name)} copy` : baseName(doc.name), width: 360 });
   const q = sliderField({ label: 'Quality (JPEG / WebP)', value: 90, min: 1, max: 100, unit: '%' });
   const note = h('div', { class: 'field-label', style: { fontSize: '11px', lineHeight: '1.5' } },
     'PSD keeps layers, masks, blend modes and opacity and opens in Photoshop, GIMP and Photopea. Type, shape, fill, adjustment layers and layer styles stay editable when reopened in Photon.');
   const ok = await openDialog({
-    title: 'Save As', width: 520,
+    title: copy ? 'Save a Copy' : 'Save As', width: 520,
     content: h('div', { class: 'col' }, h('div', { class: 'form-grid' }, h('span', { class: 'field-label' }, 'File name:'), nm.el, h('span', { class: 'field-label' }, 'Format:'), fmtSel.el), q.el, note),
     onOpen: () => nm.input.select(),
     okLabel: 'Save',
@@ -567,9 +570,9 @@ export async function saveAs(doc = app.doc): Promise<boolean> {
   if (!ok) return false;
   const fmt = fmtSel.get() as SaveFormat;
   const blob = await encode(doc, fmt, q.get() / 100);
-  const done = await writeOut(doc, blob, fmt, true, nm.get() || baseName(doc.name));
+  const done = await writeOut(doc, blob, fmt, true, nm.get() || baseName(doc.name), copy);
   if (done) {
-    if (fmt === 'psd' || fmt === 'phtn') doc.markSaved();
+    if (!copy && (fmt === 'psd' || fmt === 'phtn')) doc.markSaved();
     bus.emit('docs');
     toast(`Saved ${nm.get()}.${FORMAT_INFO[fmt].ext}`);
   }
@@ -612,6 +615,29 @@ export async function exportAsDialog() {
 export async function quickExportPng() {
   const doc = app.doc; if (!doc) return;
   await writeOut(doc, await encode(doc, 'png'), 'png', true);
+}
+
+let unloadOk = false;
+/** True once every unsaved document has been dealt with (the window may close). */
+export const unloadAllowed = () => unloadOk;
+
+/**
+ * File > Exit, and closing the window: like Photoshop, ask about each document with unsaved changes
+ * (Yes saves it, No discards it, Cancel keeps Photon open), then close.
+ */
+let exiting = false;
+export async function exitApp(): Promise<void> {
+  if (exiting) return; // already asking (the close button pressed again)
+  exiting = true;
+  try {
+    for (const d of [...app.docs]) {
+      if (!d.isDirty) continue;
+      app.setActiveDoc(d);
+      if (!(await closeDoc(d))) return;
+    }
+  } finally { exiting = false; }
+  unloadOk = true;
+  window.close();
 }
 
 /** Close with save prompt. Returns false if cancelled. */

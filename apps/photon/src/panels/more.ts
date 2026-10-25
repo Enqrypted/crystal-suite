@@ -17,6 +17,7 @@ import { currentTool, TOOLS } from '../tools/tool';
 import { BrushBase } from '../tools/paint';
 import { BRUSH_PRESETS, tipPreview, BrushOptions, TipShape } from '../core/brush';
 import { histogramCanvas } from '../dialogs/adjustdialogs';
+import { samplerColor } from '../ops/samplers';
 
 let viewportRef: any = null;
 export const setPanelsViewport = (v: any) => { viewportRef = v; };
@@ -95,10 +96,19 @@ export const infoPanel: Panel = {
         row('X:', last ? `${Math.floor(last.x)} px` : '—'), row('Y:', last ? `${Math.floor(last.y)} px` : '—'),
         row('W:', sb ? `${sb.w} px` : '—'), row('H:', sb ? `${sb.h} px` : '—'),
         h('div', { style: { gridColumn: '1 / -1', color: 'var(--text-3)', marginTop: '6px' } }, `Doc: ${d.width} × ${d.height} px · ${d.layers.length} layer${d.layers.length === 1 ? '' : 's'}`));
+      // Color Sampler readouts
+      d.samplers.forEach((s, i) => {
+        const c = samplerColor(d, s);
+        el.append(row(`#${i + 1} R:`, c ? `${c[0]}, ${c[1]}, ${c[2]}` : '—'), row('X, Y:', `${s.x}, ${s.y}`));
+      });
     };
     const r = rafThrottle(draw);
     bus.on('pointer', (d: Doc, x: number, y: number) => { last = { d, x, y }; r(); });
-    bus.on('selection', r); bus.on('docs', r);
+    bus.on('selection', r); bus.on('docs', r); bus.on('samplers', r);
+    // readouts follow edits under the samplers
+    bus.on('render', () => { if (app.doc?.samplers.length) r(); });
+    // it doesn't redraw while hidden (a closed flyout), so catch up when shown
+    bus.on('panel-shown', (id: string) => { if (id === 'info') draw(); });
     draw();
     return el;
   },

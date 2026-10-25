@@ -114,7 +114,7 @@ export abstract class BrushBase extends Tool {
 }
 
 // ---------- buffered paint tools ----------
-abstract class PaintBase extends BrushBase {
+export abstract class PaintBase extends BrushBase {
   protected stroke: PaintStroke | null = null;
   protected aliased = false;
   protected dab(d: Dab) {
@@ -339,7 +339,7 @@ function applySelectionWeights(doc: Doc, t: PixelTarget, r: Rect, mask: Float32A
   const s = getImageData(c).data;
   for (let i = 0; i < mask.length; i++) mask[i] *= s[i * 4 + 3] / 255;
 }
-function commitPatch(doc: Doc, t: PixelTarget, original: HTMLCanvasElement, r: Rect, name: string, before: ReturnType<Doc['captureState']>) {
+export function commitPatch(doc: Doc, t: PixelTarget, original: HTMLCanvasElement, r: Rect, name: string, before: ReturnType<Doc['captureState']>) {
   const patch: Patch = {
     canvas: t.canvas, x: r.x, y: r.y,
     before: ctx2d(original).getImageData(r.x, r.y, r.w, r.h),
@@ -456,7 +456,7 @@ export class RedEyeTool extends Tool {
 }
 
 // ---------- direct (per-dab) tools ----------
-abstract class DirectBase extends BrushBase {
+export abstract class DirectBase extends BrushBase {
   protected stroke: DirectStroke | null = null;
   protected pending: Rect | null = null;
   strength = 0.5;

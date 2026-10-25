@@ -157,7 +157,8 @@ export function meshWarpPreview(src: HTMLCanvasElement, q: Quad, n = 10): { canv
   }
   return { canvas: out, x: B.x, y: B.y };
 }
-function tri(ctx: CanvasRenderingContext2D, img: HTMLCanvasElement, s: number[], d: Point[]) {
+/** Draw one source triangle `s` (x0,y0,x1,y1,x2,y2) of `img` onto the destination triangle `d` (affine, clipped). */
+export function tri(ctx: CanvasRenderingContext2D, img: HTMLCanvasElement, s: number[], d: Point[]) {
   const [x0, y0, x1, y1, x2, y2] = s;
   const den = x0 * (y2 - y1) - x1 * y2 + x2 * y1 + (x1 - x2) * y0;
   if (Math.abs(den) < 1e-9) return;
@@ -169,9 +170,20 @@ function tri(ctx: CanvasRenderingContext2D, img: HTMLCanvasElement, s: number[],
   const dy = (x0 * (y2 * d[1].y - y1 * d[2].y) + y0 * (x1 * d[2].y - x2 * d[1].y) + (x2 * y1 - x1 * y2) * d[0].y) / den;
   ctx.save();
   ctx.beginPath();
-  // expand triangle slightly to hide seams
-  const cx = (d[0].x + d[1].x + d[2].x) / 3, cy = (d[0].y + d[1].y + d[2].y) / 3;
-  d.forEach((p, i) => { const ex = p.x + Math.sign(p.x - cx) * 0.6, ey = p.y + Math.sign(p.y - cy) * 0.6; i ? ctx.lineTo(ex, ey) : ctx.moveTo(ex, ey); });
+  // grow the triangle ~0.6px on every side (diagonal edges too) so neighbours overlap and no seams show
+  const E = 0.6, cx = (d[0].x + d[1].x + d[2].x) / 3, cy = (d[0].y + d[1].y + d[2].y) / 3;
+  const normal = (a: Point, b: Point) => {
+    const ex = b.x - a.x, ey = b.y - a.y, l = Math.hypot(ex, ey) || 1;
+    const nx = ey / l, ny = -ex / l;
+    return nx * ((a.x + b.x) / 2 - cx) + ny * ((a.y + b.y) / 2 - cy) < 0 ? { x: -nx, y: -ny } : { x: nx, y: ny };
+  };
+  d.forEach((p, i) => {
+    const n1 = normal(d[(i + 2) % 3], p), n2 = normal(p, d[(i + 1) % 3]);
+    let ox = n1.x + n2.x, oy = n1.y + n2.y;
+    const k = E / Math.max(0.2, 1 + n1.x * n2.x + n1.y * n2.y); // miter, capped for very sharp corners
+    ox *= k; oy *= k;
+    i ? ctx.lineTo(p.x + ox, p.y + oy) : ctx.moveTo(p.x + ox, p.y + oy);
+  });
   ctx.closePath();
   ctx.clip();
   ctx.transform(m11, m12, m21, m22, dx, dy);

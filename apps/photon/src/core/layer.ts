@@ -1,4 +1,5 @@
 import { createCanvas, ctx2d, RGB, uid } from './util';
+import type { Pattern } from './patterns';
 
 export type LayerKind = 'raster' | 'text' | 'shape' | 'adjustment' | 'fill' | 'group';
 
@@ -73,7 +74,11 @@ export type GradientStyle = 'linear' | 'radial' | 'angle' | 'reflected' | 'diamo
 
 export type FillData =
   | { type: 'solid'; color: RGB }
-  | { type: 'gradient'; gradient: Gradient; style: GradientStyle; angle: number; scale: number; reverse: boolean };
+  | { type: 'gradient'; gradient: Gradient; style: GradientStyle; angle: number; scale: number; reverse: boolean }
+  /** scale in % (100 = the pattern's own size) */
+  | { type: 'pattern'; pattern: Pattern; scale: number };
+
+export type BevelStyle = 'inner' | 'outer' | 'emboss' | 'pillow';
 
 export interface AdjustmentData { kind: string; params: any }
 
@@ -85,6 +90,19 @@ export interface LayerStyle {
   stroke?: { enabled: boolean; color: RGB; opacity: number; size: number; position: 'outside' | 'inside' | 'center'; blend: BlendMode };
   colorOverlay?: { enabled: boolean; color: RGB; opacity: number; blend: BlendMode };
   gradientOverlay?: { enabled: boolean; gradient: Gradient; opacity: number; angle: number; style: GradientStyle; scale: number; reverse: boolean; blend: BlendMode };
+  /** scale in % */
+  patternOverlay?: { enabled: boolean; pattern: Pattern; opacity: number; scale: number; blend: BlendMode };
+  satin?: { enabled: boolean; color: RGB; opacity: number; angle: number; distance: number; size: number; invert: boolean; blend: BlendMode };
+  /**
+   * depth in % (1..1000), size / soften px, angle / altitude in degrees. `opacity` is the highlight's
+   * (the effect counts as on when either part shows).
+   */
+  bevel?: {
+    enabled: boolean; style: BevelStyle; technique: 'smooth' | 'chisel'; depth: number; up: boolean; size: number; soften: number;
+    angle: number; altitude: number;
+    highlightColor: RGB; opacity: number; highlightBlend: BlendMode;
+    shadowColor: RGB; shadowOpacity: number; shadowBlend: BlendMode;
+  };
 }
 
 export interface LayerSnapshot {
@@ -100,6 +118,7 @@ export interface LayerSnapshot {
   style: LayerStyle | null;
   text?: TextData; shape?: ShapeData; fill?: FillData; adjustment?: AdjustmentData;
   color: string;
+  isBackground: boolean;
 }
 
 /**
@@ -163,7 +182,7 @@ export class Layer {
       mask: this.mask, maskX: this.maskX, maskY: this.maskY, maskEnabled: this.maskEnabled, clipped: this.clipped,
       parentId: this.parentId, collapsed: this.collapsed,
       style: this.style, text: this.text, shape: this.shape, fill: this.fill, adjustment: this.adjustment,
-      color: this.color,
+      color: this.color, isBackground: this.isBackground,
     };
   }
   restore(s: LayerSnapshot) {
@@ -174,6 +193,7 @@ export class Layer {
     this.mask = s.mask; this.maskX = s.maskX; this.maskY = s.maskY; this.maskEnabled = s.maskEnabled; this.clipped = s.clipped;
     this.style = s.style; this.text = s.text; this.shape = s.shape; this.fill = s.fill; this.adjustment = s.adjustment;
     this.color = s.color;
+    this.isBackground = s.isBackground ?? false;
     this.parentId = s.parentId ?? 0;
     this.collapsed = s.collapsed ?? false;
     this.preview = null;

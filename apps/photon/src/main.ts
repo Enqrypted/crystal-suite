@@ -16,6 +16,7 @@ import { initTools } from './tools';
 import { currentTool, getTool, setTool, toolByKey, TOOLS } from './tools/tool';
 import { setNavViewport } from './tools/nav';
 import { buildMenus } from './menus';
+import type { MenuItem } from './ui/menutypes';
 import { layersPanel } from './panels/layers';
 import { propertiesPanel, adjustmentsPanel } from './panels/properties';
 import { colorPanel, swatchesPanel, gradientsPanel } from './panels/color';
@@ -31,6 +32,8 @@ import * as lay from './ops/layerops';
 import { fmtBytes } from './ops/imageops';
 import { BrushBase } from './tools/paint';
 import { TransformTool } from './tools/transform';
+import { onPatternReady } from './core/patterns';
+import { renderFillLayer } from './ops/layerops';
 
 document.documentElement.dataset.theme = app.prefs.theme;
 HISTORY_LIMIT.value = app.prefs.historyStates;
@@ -329,12 +332,27 @@ window.addEventListener('drop', async (e) => {
 });
 
 // ---------- unsaved changes ----------
+// Closing with unsaved documents is held back. Crystal Suite 0.2.1+ then asks Photon (onCloseRequest) and
+// Photon asks about each document — Yes / No / Cancel, like Photoshop; older launchers show their own prompt.
 window.addEventListener('beforeunload', (e) => {
-  if (app.docs.some((d) => d.isDirty)) { e.preventDefault(); e.returnValue = ''; }
+  if (!io.unloadAllowed() && app.docs.some((d) => d.isDirty)) { e.preventDefault(); e.returnValue = ''; }
 });
 
 // Electron: files passed on the command line / "Open with"
 const nativeBridge = (window as any).photonNative;
+nativeBridge?.onCloseRequest?.(() => { void io.exitApp(); });
+
+// a pattern used by an open document finished loading (just opened a file): paint what uses it
+onPatternReady(() => {
+  for (const d of app.docs) {
+    let any = false;
+    for (const L of d.layers) {
+      if (L.kind === 'fill' && L.fill?.type === 'pattern') { renderFillLayer(d, L); any = true; }
+      else if (L.style?.patternOverlay?.enabled) { L.touch(); any = true; }
+    }
+    if (any) { d.invalidate(); bus.emit('layers', d); }
+  }
+});
 nativeBridge?.onOpenPaths?.((paths: string[]) => paths.forEach((p) => io.openPath(p)));
 
 // ---------- shortcuts dialog ----------
@@ -365,5 +383,18 @@ function shortcutsDialog() {
 bus.on('tool', () => viewport.updateCursor());
 window.addEventListener('resize', () => viewport.resize());
 showPanel('layers');
-(window as any).photon = { app, setTool, io };
+/** Run a menu command by its labels, e.g. runMenu('Edit', 'Transform', 'Warp') (scripting and tests). */
+function runMenu(...labels: string[]): boolean {
+  let items: MenuItem[] = menus.find((m) => m.label === labels[0])?.items() ?? [];
+  for (let i = 1; i < labels.length; i++) {
+    const want = labels[i].replace(/\.\.\.$/, '');
+    // exact label, else a label that starts with it ("Fade" finds "Fade Brush Tool...")
+    const it = items.find((x) => (x.label ?? '').replace(/\.\.\.$/, '') === want) ?? items.find((x) => (x.label ?? '').startsWith(`${want} `));
+    if (!it) return false;
+    if (i === labels.length - 1) { if (it.enabled && !it.enabled()) return false; it.action?.(); return true; }
+    items = typeof it.submenu === 'function' ? it.submenu() : it.submenu ?? [];
+  }
+  return false;
+}
+(window as any).photon = { app, setTool, io, runMenu };
 console.log(`${APP_NAME} ready`);

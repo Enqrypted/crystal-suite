@@ -13,6 +13,8 @@ import { openDialog, confirmDialog, alertDialog, promptDialog } from '../dialogs
 import { h } from '../ui/dom';
 import { textInput, select, numberInput, checkbox, pickColor, toast, segmented } from '../ui/widgets';
 import { gradientPicker } from '../ui/gradientpicker';
+import { patternPicker } from '../ui/patternpicker';
+import { defaultPattern, tiledPattern } from '../core/patterns';
 import { activeDoc, editableTarget } from './target';
 import { rasterize } from './rasterize';
 import { duplicateLayerObject } from '../tools/transform';
@@ -441,7 +443,11 @@ export function renderFillLayer(doc: Doc, L: Layer) {
   const c = createCanvas(doc.width, doc.height);
   const x = ctx2d(c);
   if (f.type === 'solid') { x.fillStyle = cssColor(f.color); x.fillRect(0, 0, c.width, c.height); }
-  else {
+  else if (f.type === 'pattern') {
+    // still decoding (just opened): left empty, repainted when the pattern is ready (see main.ts)
+    const p = tiledPattern(f.pattern, c.width, c.height, f.scale / 100);
+    if (p) x.drawImage(p, 0, 0);
+  } else {
     const a = (f.angle * Math.PI) / 180;
     const len = (Math.abs(doc.width * Math.cos(a)) + Math.abs(doc.height * Math.sin(a))) / 2 * (f.scale / 100);
     const cx = doc.width / 2, cy = doc.height / 2;
@@ -480,25 +486,42 @@ export function newAdjustmentLayer(kind: string) {
   bus.emit('show-panel', 'properties');
 }
 
-export async function newFillLayer(type: 'solid' | 'gradient') {
+export async function newFillLayer(type: 'solid' | 'gradient' | 'pattern') {
   const doc = activeDoc(); if (!doc) return;
   let fill: FillData;
   if (type === 'solid') {
     const c = await pickColor(app.fg, 'Color Picker (Solid Color)');
     if (!c) return;
     fill = { type: 'solid', color: c };
+  } else if (type === 'pattern') {
+    const f = await patternFillDialog({ type: 'pattern', pattern: defaultPattern(), scale: 100 });
+    if (!f) return;
+    fill = f;
   } else {
     const f = await gradientFillDialog({ type: 'gradient', gradient: fgBgGradient(app.fg, app.bg), style: 'linear', angle: 90, scale: 100, reverse: false });
     if (!f) return;
     fill = f;
   }
   const before = doc.captureState();
-  const L = new Layer(doc.nextLayerName(type === 'solid' ? 'Color Fill' : 'Gradient Fill'), 1, 1);
+  const L = new Layer(doc.nextLayerName(type === 'solid' ? 'Color Fill' : type === 'pattern' ? 'Pattern Fill' : 'Gradient Fill'), 1, 1);
   L.kind = 'fill';
   L.fill = fill;
   renderFillLayer(doc, L);
   insertSpecialLayer(doc, L);
-  doc.commit(type === 'solid' ? 'Color Fill Layer' : 'Gradient Fill Layer', before);
+  doc.commit(type === 'solid' ? 'Color Fill Layer' : type === 'pattern' ? 'Pattern Fill Layer' : 'Gradient Fill Layer', before);
+}
+
+export async function patternFillDialog(init: Extract<FillData, { type: 'pattern' }>): Promise<Extract<FillData, { type: 'pattern' }> | null> {
+  const picker = patternPicker({ value: init.pattern, size: 48, onChange: () => {} });
+  const scale = numberInput({ value: init.scale, min: 1, max: 1000, unit: '%', width: 60 });
+  const ok = await openDialog({
+    title: 'Pattern Fill', width: 380,
+    content: h('div', { class: 'form-grid' },
+      h('span', { class: 'field-label' }, 'Pattern:'), picker.el,
+      h('span', { class: 'field-label' }, 'Scale:'), scale.el),
+  });
+  if (!ok) return null;
+  return { type: 'pattern', pattern: picker.get(), scale: scale.get() };
 }
 
 export async function gradientFillDialog(init: Extract<FillData, { type: 'gradient' }>): Promise<Extract<FillData, { type: 'gradient' }> | null> {
@@ -528,7 +551,8 @@ export async function editFillLayer(L: Layer) {
   if (L.fill.type === 'solid') {
     const c = await pickColor(L.fill.color, 'Color Picker (Solid Color)');
     if (c) fill = { type: 'solid', color: c };
-  } else fill = await gradientFillDialog(L.fill);
+  } else if (L.fill.type === 'pattern') fill = await patternFillDialog(L.fill);
+  else fill = await gradientFillDialog(L.fill);
   if (!fill) return;
   const before = doc.captureState();
   L.fill = fill;

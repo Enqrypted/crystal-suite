@@ -7,6 +7,7 @@ import { checkerboard, clamp, createCanvas, ctx2d, Point } from '../core/util';
 import { h } from './dom';
 import { currentTool, getTool, PointerInfo, Tool } from '../tools/tool';
 import { alphaToGray } from '../ops/target';
+import { drawSamplers } from '../ops/samplers';
 
 export const ZOOM_STEPS = [0.01, 0.02, 0.03, 0.04, 0.05, 0.0625, 0.0833, 0.125, 0.1667, 0.25, 0.3333, 0.5, 0.6667, 1, 2, 3, 4, 5, 6, 7, 8, 12, 16, 24, 32];
 
@@ -559,6 +560,7 @@ export class Viewport {
     ctx.strokeRect(Math.round(d.panX) - 0.5, Math.round(d.panY) - 0.5, Math.round(d.width * z) + 1, Math.round(d.height * z) + 1);
     if (app.prefs.showGuides) this.drawGuides(d);
     if (d.selection && !d.quickMask) this.drawAnts(d);
+    if (this.tool.id !== 'color-sampler') drawSamplers(ctx, (x, y) => this.toScreen(x, y), d);
     try { this.tool.overlay(ctx, this); } catch (e) { console.error(e); }
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     this.renderRulers();

@@ -244,6 +244,53 @@ export function alignLayers(kind: string) {
   doc.commit('Align', before);
 }
 
+/**
+ * Layer > Distribute: spread 3 or more selected layers evenly — by their edges or centers (the outermost two
+ * stay put), or with equal gaps between them (Horizontal / Vertical Spacing).
+ */
+export function distributeLayers(kind: 'top' | 'vcenter' | 'bottom' | 'left' | 'hcenter' | 'right' | 'hspace' | 'vspace') {
+  const doc = app.doc;
+  if (!doc) return;
+  const layers = doc.selectedLayers.filter((l) => l.movable && !l.isBackground && l.kind !== 'adjustment');
+  const boxes = layers.map((l) => ({ l, b: layerBounds(l) })).filter((x) => x.b) as { l: Layer; b: Rect }[];
+  if (boxes.length < 3) { toast('Select three or more layers to distribute (Ctrl+click them in the Layers panel)'); return; }
+  const horiz = kind === 'left' || kind === 'hcenter' || kind === 'right' || kind === 'hspace';
+  const key = (b: Rect) => {
+    switch (kind) {
+      case 'left': case 'hspace': return b.x;
+      case 'hcenter': return b.x + b.w / 2;
+      case 'right': return b.x + b.w;
+      case 'top': case 'vspace': return b.y;
+      case 'vcenter': return b.y + b.h / 2;
+      default: return b.y + b.h;
+    }
+  };
+  boxes.sort((a, c) => key(a.b) - key(c.b));
+  const n = boxes.length, first = boxes[0].b, last = boxes[n - 1].b;
+  const target: number[] = [];
+  if (kind === 'hspace' || kind === 'vspace') {
+    const size = (b: Rect) => (horiz ? b.w : b.h);
+    const start = horiz ? first.x : first.y, end = horiz ? last.x + last.w : last.y + last.h;
+    const gap = (end - start - boxes.reduce((s, x) => s + size(x.b), 0)) / (n - 1);
+    let at = start;
+    for (const { b } of boxes) { target.push(at); at += size(b) + gap; }
+  } else {
+    const k0 = key(first), k1 = key(last);
+    for (let i = 0; i < n; i++) target.push(k0 + ((k1 - k0) * i) / (n - 1));
+  }
+  const before = doc.captureState();
+  boxes.forEach(({ l, b }, i) => {
+    const now = kind === 'hspace' ? b.x : kind === 'vspace' ? b.y : key(b);
+    const d = Math.round(target[i] - now);
+    if (!d) return;
+    const dx = horiz ? d : 0, dy = horiz ? 0 : d;
+    l.x += dx; l.y += dy; l.maskX += dx; l.maskY += dy;
+    doc.ensureCoverage(l);
+    l.touch();
+  });
+  doc.commit('Distribute', before);
+}
+
 // ---------- shared handle geometry ----------
 function quadScreen(v: Viewport, q: Quad) { return q.map((p) => v.toScreen(p.x, p.y)) as Quad; }
 function handlePoints(q: Quad): Point[] {

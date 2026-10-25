@@ -8,6 +8,8 @@ import { h, injectStyle, onDrag } from '../ui/dom';
 import { button, checkbox, colorSwatch, numberInput, Option, section, select, sliderField } from '../ui/widgets';
 import { MenuItem, SEP } from '../ui/menutypes';
 import { gradientPicker } from '../ui/gradientpicker';
+import { patternPicker } from '../ui/patternpicker';
+import { defaultPattern } from '../core/patterns';
 import { alertDialog, openDialog } from './dialog';
 
 type FxKey = keyof LayerStyle;
@@ -27,16 +29,26 @@ export function styleDefaults(): FullStyle {
       enabled: false, opacity: 1, angle: 90, style: 'linear', scale: 100, reverse: false, blend: 'normal',
       gradient: { name: 'Black, White', stops: [{ pos: 0, color: black, opacity: 1 }, { pos: 1, color: { r: 255, g: 255, b: 255 }, opacity: 1 }] },
     },
+    patternOverlay: { enabled: false, pattern: defaultPattern(), opacity: 1, scale: 100, blend: 'normal' },
+    satin: { enabled: false, color: black, opacity: 0.5, angle: 19, distance: 11, size: 14, invert: true, blend: 'multiply' },
+    bevel: {
+      enabled: false, style: 'inner', technique: 'smooth', depth: 100, up: true, size: 5, soften: 0, angle: 120, altitude: 30,
+      highlightColor: { r: 255, g: 255, b: 255 }, opacity: 0.75, highlightBlend: 'screen',
+      shadowColor: black, shadowOpacity: 0.75, shadowBlend: 'multiply',
+    },
   };
 }
 
 /** Effects in Photoshop's dialog / fx-menu order (top of the stack first). */
 const FX: { key: FxKey; label: string }[] = [
+  { key: 'bevel', label: 'Bevel & Emboss' },
   { key: 'stroke', label: 'Stroke' },
   { key: 'innerShadow', label: 'Inner Shadow' },
   { key: 'innerGlow', label: 'Inner Glow' },
+  { key: 'satin', label: 'Satin' },
   { key: 'colorOverlay', label: 'Color Overlay' },
   { key: 'gradientOverlay', label: 'Gradient Overlay' },
+  { key: 'patternOverlay', label: 'Pattern Overlay' },
   { key: 'outerGlow', label: 'Outer Glow' },
   { key: 'dropShadow', label: 'Drop Shadow' },
 ];
@@ -239,6 +251,62 @@ export async function openLayerStyleDialog(which?: string): Promise<void> {
         resetBtn('gradientOverlay'),
       ];
     },
+    patternOverlay: () => {
+      const e = cur.patternOverlay;
+      const pp = patternPicker({ value: e.pattern, size: 40, onChange: (p) => set('patternOverlay', { pattern: p }) });
+      return [
+        title('Pattern Overlay'),
+        section('Pattern',
+          lrow('Blend Mode:', blendSel(e.blend, (m) => set('patternOverlay', { blend: m }))),
+          opacity('patternOverlay'),
+          lrow('Pattern:', pp.el, h('span', { class: 'ls-static', title: 'The pattern is anchored to the document origin' }, 'Snap to Origin')),
+          prop('patternOverlay', 'scale', 'Scale:', 1, 1000, '%')),
+        resetBtn('patternOverlay'),
+      ];
+    },
+    satin: () => [
+      title('Satin'),
+      section('Structure',
+        lrow('Blend Mode:', blendSel(fx('satin').blend, (m) => set('satin', { blend: m })), swatch('satin')),
+        opacity('satin'),
+        angle('satin'),
+        prop('satin', 'distance', 'Distance:', 1, 250, 'px'),
+        prop('satin', 'size', 'Size:', 0, 250, 'px'),
+        lrow('', checkbox({ label: 'Invert', checked: fx('satin').invert, onChange: (v) => set('satin', { invert: v }) }).el)),
+      resetBtn('satin'),
+    ],
+    bevel: () => {
+      const e = cur.bevel;
+      const colorOf = (p: 'highlightColor' | 'shadowColor', what: string) =>
+        colorSwatch({ color: e[p], title: `Set ${what} color`, onChange: (c) => set('bevel', { [p]: c }) }).el;
+      return [
+        title('Bevel & Emboss'),
+        section('Structure',
+          lrow('Style:', select({
+            options: [{ value: 'inner', label: 'Inner Bevel' }, { value: 'outer', label: 'Outer Bevel' }, { value: 'emboss', label: 'Emboss' }, { value: 'pillow', label: 'Pillow Emboss' }],
+            value: e.style, width: 130, onChange: (v) => set('bevel', { style: v }),
+          }).el),
+          lrow('Technique:', select({
+            options: [{ value: 'smooth', label: 'Smooth' }, { value: 'chisel', label: 'Chisel Hard' }],
+            value: e.technique, width: 130, onChange: (v) => set('bevel', { technique: v }),
+          }).el),
+          prop('bevel', 'depth', 'Depth:', 1, 1000, '%'),
+          lrow('Direction:', select({
+            options: [{ value: 'up', label: 'Up' }, { value: 'down', label: 'Down' }],
+            value: e.up ? 'up' : 'down', width: 80, onChange: (v) => set('bevel', { up: v === 'up' }),
+          }).el),
+          prop('bevel', 'size', 'Size:', 0, 250, 'px'),
+          prop('bevel', 'soften', 'Soften:', 0, 16, 'px')),
+        section('Shading',
+          angle('bevel'),
+          prop('bevel', 'altitude', 'Altitude:', 0, 90, '°'),
+          lrow('Highlight:', blendSel(e.highlightBlend, (m) => set('bevel', { highlightBlend: m })), colorOf('highlightColor', 'highlight')),
+          num('Opacity:', e.opacity * 100, 0, 100, '%', (v) => set('bevel', { opacity: v / 100 })),
+          lrow('Shadow:', blendSel(e.shadowBlend, (m) => set('bevel', { shadowBlend: m })), colorOf('shadowColor', 'shadow')),
+          num('Opacity:', e.shadowOpacity * 100, 0, 100, '%', (v) => set('bevel', { shadowOpacity: v / 100 }))),
+        resetBtn('bevel'),
+      ];
+    },
   };
 
   const show = (key: 'blending' | FxKey) => {
@@ -332,13 +400,7 @@ export function layerStyleMenuItems(): MenuItem[] {
   return [
     { label: 'Blending Options...', action: open('blending'), enabled: can },
     SEP,
-    { label: 'Drop Shadow...', action: open('dropShadow'), enabled: can },
-    { label: 'Inner Shadow...', action: open('innerShadow'), enabled: can },
-    { label: 'Outer Glow...', action: open('outerGlow'), enabled: can },
-    { label: 'Inner Glow...', action: open('innerGlow'), enabled: can },
-    { label: 'Stroke...', action: open('stroke'), enabled: can },
-    { label: 'Color Overlay...', action: open('colorOverlay'), enabled: can },
-    { label: 'Gradient Overlay...', action: open('gradientOverlay'), enabled: can },
+    ...FX.map((f): MenuItem => ({ label: `${f.label}...`, action: open(f.key), enabled: can })),
     SEP,
     { label: 'Copy Layer Style', action: copyLayerStyle, enabled: () => { const L = app.doc?.active; return styleable(L) && !!L.style; } },
     { label: 'Paste Layer Style', action: pasteLayerStyle, enabled: () => !!clip && !!app.doc?.selectedLayers.some(styleable) },

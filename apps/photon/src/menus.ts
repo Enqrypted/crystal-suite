@@ -15,7 +15,9 @@ import { filterMenuItems } from './dialogs/filterdialogs';
 import { layerStyleMenuItems } from './dialogs/layerstyle';
 import { exportMenuItems, exportAsDialog, quickExportLayerPng } from './ops/export';
 import { ADJUSTMENTS } from './core/adjustments';
-import { alignLayers, cropDocument, TransformTool } from './tools/transform';
+import { alignLayers, cropDocument, distributeLayers, TransformTool } from './tools/transform';
+import { WarpTool } from './tools/warp';
+import { canFade, fadeDialog } from './ops/fade';
 import { togglePanel, isPanelVisible } from './ui/dock';
 import type { Viewport } from './ui/viewport';
 import { HISTORY_LIMIT } from './core/document';
@@ -63,6 +65,7 @@ export function buildMenus(ctx: MenuContext): TopMenu[] {
       SEP,
       { label: 'Save', shortcut: 'Ctrl+S', enabled: hasDoc, action: () => io.save() },
       { label: 'Save As...', shortcut: 'Shift+Ctrl+S', enabled: hasDoc, action: () => io.saveAs() },
+      { label: 'Save a Copy...', shortcut: 'Alt+Ctrl+S', enabled: hasDoc, action: () => io.saveAs(app.doc, true) },
       { label: 'Revert', shortcut: 'F12', enabled: () => !!app.doc?.snapshots.length, action: () => { const d = app.doc!; d.restoreSnapshot(d.snapshots[0]); } },
       SEP,
       {
@@ -73,7 +76,7 @@ export function buildMenus(ctx: MenuContext): TopMenu[] {
       SEP,
       { label: 'Print...', shortcut: 'Ctrl+P', enabled: hasDoc, action: () => printDoc() },
       SEP,
-      { label: 'Exit', shortcut: 'Ctrl+Q', action: () => window.close() },
+      { label: 'Exit', shortcut: 'Ctrl+Q', action: () => { void io.exitApp(); } },
     ],
   };
 
@@ -87,11 +90,19 @@ export function buildMenus(ctx: MenuContext): TopMenu[] {
         { label: `Redo ${redoName}`.trim(), shortcut: 'Shift+Ctrl+Z', enabled: () => !!app.doc?.canRedo, action: () => app.doc?.redo() },
         { label: 'Toggle Last State', shortcut: 'Alt+Ctrl+Z', enabled: hasDoc, action: () => { const dd = app.doc!; if (dd.canRedo) dd.redo(); else dd.undo(); } },
         SEP,
+        { label: d && canFade(d) ? `Fade ${d.history[d.historyIndex - 1].name}...` : 'Fade...', shortcut: 'Shift+Ctrl+F', enabled: () => canFade(app.doc), action: () => { void fadeDialog(); } },
+        SEP,
         { label: 'Cut', shortcut: 'Ctrl+X', enabled: hasSel, action: () => edit.cut() },
         { label: 'Copy', shortcut: 'Ctrl+C', enabled: hasDoc, action: () => edit.copy(false) },
         { label: 'Copy Merged', shortcut: 'Shift+Ctrl+C', enabled: hasDoc, action: () => edit.copy(true) },
         { label: 'Paste', shortcut: 'Ctrl+V', bind: false, action: () => edit.paste(false) },
-        { label: 'Paste Special', submenu: [{ label: 'Paste in Place', shortcut: 'Shift+Ctrl+V', action: () => edit.paste(true) }] },
+        {
+          label: 'Paste Special', submenu: [
+            { label: 'Paste in Place', shortcut: 'Shift+Ctrl+V', action: () => edit.paste(true) },
+            { label: 'Paste Into', shortcut: 'Alt+Shift+Ctrl+V', enabled: hasSel, action: () => { void edit.pasteInto(false); } },
+            { label: 'Paste Outside', enabled: hasSel, action: () => { void edit.pasteInto(true); } },
+          ],
+        },
         { label: 'Clear', shortcut: 'Delete', enabled: hasDoc, action: () => edit.clearSelection(), bind: false },
         SEP,
         { label: 'Fill...', shortcut: 'Shift+F5', enabled: hasDoc, action: () => edit.fillDialog() },
@@ -106,6 +117,7 @@ export function buildMenus(ctx: MenuContext): TopMenu[] {
             { label: 'Skew', action: () => edit.startTransform('skew') },
             { label: 'Distort', action: () => edit.startTransform('distort') },
             { label: 'Perspective', action: () => edit.startTransform('perspective') },
+            { label: 'Warp', action: () => { void WarpTool.start(); } },
             SEP,
             { label: 'Rotate 180°', action: () => edit.transformImmediate('rot180') },
             { label: 'Rotate 90° Clockwise', action: () => edit.transformImmediate('rot90') },
@@ -115,6 +127,8 @@ export function buildMenus(ctx: MenuContext): TopMenu[] {
             { label: 'Flip Vertical', action: () => edit.transformImmediate('flipV') },
           ],
         },
+        SEP,
+        { label: 'Define Pattern...', enabled: hasDoc, action: () => { void edit.definePattern(); } },
         SEP,
         {
           label: 'Purge', submenu: [
@@ -187,7 +201,7 @@ export function buildMenus(ctx: MenuContext): TopMenu[] {
       { label: 'Rename Layer...', shortcut: 'F2', enabled: hasLayer, action: () => lay.renameLayer() },
       { label: 'Layer Style', enabled: hasLayer, submenu: () => layerStyleMenuItems() },
       SEP,
-      { label: 'New Fill Layer', enabled: hasDoc, submenu: [{ label: 'Solid Color...', action: () => lay.newFillLayer('solid') }, { label: 'Gradient...', action: () => lay.newFillLayer('gradient') }] },
+      { label: 'New Fill Layer', enabled: hasDoc, submenu: [{ label: 'Solid Color...', action: () => lay.newFillLayer('solid') }, { label: 'Gradient...', action: () => lay.newFillLayer('gradient') }, { label: 'Pattern...', action: () => lay.newFillLayer('pattern') }] },
       { label: 'New Adjustment Layer', enabled: hasDoc, submenu: () => ADJUSTMENTS.filter((a) => !a.noLayer).map((a) => ({ label: `${a.name}...`, action: () => lay.newAdjustmentLayer(a.kind) })) },
       SEP,
       {
@@ -230,6 +244,15 @@ export function buildMenus(ctx: MenuContext): TopMenu[] {
           { label: 'Bottom Edges', action: () => alignLayers('bottom') }, SEP,
           { label: 'Left Edges', action: () => alignLayers('left') }, { label: 'Horizontal Centers', action: () => alignLayers('hcenter') },
           { label: 'Right Edges', action: () => alignLayers('right') },
+        ],
+      },
+      {
+        label: 'Distribute', enabled: () => (app.doc?.selectedLayers.length ?? 0) >= 3, submenu: [
+          { label: 'Top Edges', action: () => distributeLayers('top') }, { label: 'Vertical Centers', action: () => distributeLayers('vcenter') },
+          { label: 'Bottom Edges', action: () => distributeLayers('bottom') }, SEP,
+          { label: 'Left Edges', action: () => distributeLayers('left') }, { label: 'Horizontal Centers', action: () => distributeLayers('hcenter') },
+          { label: 'Right Edges', action: () => distributeLayers('right') }, SEP,
+          { label: 'Horizontal Spacing', action: () => distributeLayers('hspace') }, { label: 'Vertical Spacing', action: () => distributeLayers('vspace') },
         ],
       },
       SEP,

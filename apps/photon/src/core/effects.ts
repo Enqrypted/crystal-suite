@@ -1,13 +1,14 @@
-// Layer styles (fx): Drop Shadow, Outer Glow, overlays, Inner Glow / Shadow and Stroke.
-// GPU canvas ops (blur filter, compositing) do the heavy lifting; an exact Euclidean distance
-// transform provides the spread / choke / stroke morphology.
+// Layer styles (fx): Drop Shadow, Outer Glow, overlays (pattern, gradient, color), Satin, Inner Glow / Shadow,
+// Stroke and Bevel & Emboss. GPU canvas ops (blur filter, compositing) do the heavy lifting; an exact Euclidean
+// distance transform provides the spread / choke / stroke morphology and the bevel's height field.
 //
 // Value conventions (LayerStyle): opacity 0..1, spread / choke 0..100 (% of size), size / distance px,
-// angle in degrees (Photoshop light angle), gradient overlay scale in % (100 = 100%).
+// angle in degrees (Photoshop light angle), gradient / pattern overlay scale in % (100 = 100%).
 import { BlendMode, Gradient, GradientStyle, Layer, LayerStyle } from './layer';
 import { NATIVE_BLEND, blendPixels } from './blend';
 import { clamp, createCanvas, ctx2d, cssColor, RGB } from './util';
 import { renderGradient } from './gradient';
+import { tiledPattern } from './patterns';
 
 export function hasActiveStyle(L: Layer): boolean {
   const s = L.style;
@@ -28,6 +29,9 @@ export function renderStyled(L: Layer, base: HTMLCanvasElement, bx: number, by: 
   if (!s) return { canvas: base, x: bx, y: by };
   const ds = live(s.dropShadow), og = live(s.outerGlow), go = live(s.gradientOverlay), co = live(s.colorOverlay);
   const ig = live(s.innerGlow), is = live(s.innerShadow);
+  const po = live(s.patternOverlay), sa = live(s.satin);
+  const bv = s.bevel && s.bevel.enabled && s.bevel.size > 0 && (s.bevel.opacity > 0 || s.bevel.shadowOpacity > 0) ? s.bevel : null;
+  const bvOut = !!bv && bv.style !== 'inner';
   const st = s.stroke && s.stroke.size > 0 ? live(s.stroke) : null;
   const fill = clamp(L.fillOpacity ?? 1, 0, 1);
 
@@ -46,6 +50,7 @@ export function renderStyled(L: Layer, base: HTMLCanvasElement, bx: number, by: 
   if (ds) { const [dx, dy] = lightOffset(ds.angle, ds.distance), e = ds.size * 1.5; grow(e - dx, e - dy, e + dx, e + dy); }
   if (og) { const e = og.size * 1.5; grow(e, e, e, e); }
   if (st && st.position !== 'inside') { const e = st.position === 'outside' ? st.size : st.size / 2; grow(e, e, e, e); }
+  if (bvOut) { const e = bv!.size + bv!.soften + 2; grow(e, e, e, e); }
   ml = Math.ceil(ml) + 2; mt = Math.ceil(mt) + 2; mr = Math.ceil(mr) + 2; mb = Math.ceil(mb) + 2;
   // Effect space W: content bbox + margins (base-local coords). The content bbox sits at (ml, mt).
   const W: Box = { x: bb.x - ml, y: bb.y - mt, w: bb.w + ml + mr, h: bb.h + mt + mb };
@@ -56,8 +61,8 @@ export function renderStyled(L: Layer, base: HTMLCanvasElement, bx: number, by: 
   ctx2d(shape).drawImage(base, -W.x, -W.y);
 
   // Signed distance field, only when spread / choke / stroke need morphology
-  const needOut = !!((ds && ds.spread > 0) || (og && og.spread > 0) || (st && st.position !== 'inside'));
-  const needIn = !!((ig && ig.choke > 0) || (is && is.choke > 0) || (st && st.position !== 'outside'));
+  const needOut = !!((ds && ds.spread > 0) || (og && og.spread > 0) || (st && st.position !== 'inside') || bvOut);
+  const needIn = !!((ig && ig.choke > 0) || (is && is.choke > 0) || (st && st.position !== 'outside') || bv);
   const sd = needOut || needIn ? signedDistance(src, bw, bb, W, needOut, needIn) : null;
   /** Shape grown (r > 0) or shrunk (r < 0) by r px, anti-aliased. */
   const morph = (r: number) => coverageCanvas(sd!, ww, wh, r);
@@ -87,6 +92,22 @@ export function renderStyled(L: Layer, base: HTMLCanvasElement, bx: number, by: 
     blendOnto(oc, E, og.blend, og.opacity, 0, 0, docX, docY);
   }
 
+  // ---- Bevel & Emboss: highlight and shadow from a height field built on the edge distance. The part
+  // outside the content (outer bevel, emboss, pillow) goes here; the inside part shades the interior below.
+  const bevel = bv ? bevelShading(sd!, ww, wh, bv) : null;
+  if (bevel && bvOut) {
+    for (const [E, color, blend, op] of [[bevel.lo, bv!.shadowColor, bv!.shadowBlend, bv!.shadowOpacity], [bevel.hi, bv!.highlightColor, bv!.highlightBlend, bv!.opacity]] as const) {
+      if (op <= 0) continue;
+      const O = scratch('bevel-out', ww, wh), x = ctx2d(O);
+      x.drawImage(E, 0, 0);
+      x.globalCompositeOperation = 'destination-out';
+      x.drawImage(shape, 0, 0);
+      resetCtx(x);
+      tint(O, color);
+      blendOnto(oc, O, blend, op, 0, 0, docX, docY);
+    }
+  }
+
   // ---- Interior: content + overlays + inner effects, composed on an opaque copy of the content
   // colors so blend modes act exactly like "clipped to the layer", then masked by content alpha.
   let opq: HTMLCanvasElement | null = null;
@@ -104,10 +125,16 @@ export function renderStyled(L: Layer, base: HTMLCanvasElement, bx: number, by: 
     return blurred(P, blur, ml - m, mt - m, ww, wh);
   };
   let content = shape;
-  if (go || co || ig || is) {
+  if (go || co || ig || is || po || sa || bevel) {
     const O = opaque(), ox = ctx2d(O);
+    if (po) {
+      // the pattern is anchored to the document origin, like Photoshop's default (Snap to Origin)
+      const P = tiledPattern(po.pattern, bb.w, bb.h, po.scale / 100, -(docX + ml), -(docY + mt));
+      if (P) blendOnto(ox, P, po.blend, po.opacity, ml, mt, docX, docY);
+    }
     if (go) blendOnto(ox, gradientFill(go, bb.w, bb.h), go.blend, go.opacity, ml, mt, docX, docY);
     if (co) blendOnto(ox, solid(co.color, bb.w, bb.h), co.blend, co.opacity, ml, mt, docX, docY);
+    if (sa) blendOnto(ox, satinMatte(shape, sa, ww, wh), sa.blend, sa.opacity, 0, 0, docX, docY);
     if (ig) {
       const E = innerMatte(ig.choke, ig.size, 0, 0);
       tint(E, ig.color);
@@ -118,6 +145,10 @@ export function renderStyled(L: Layer, base: HTMLCanvasElement, bx: number, by: 
       const E = innerMatte(is.choke, is.size, dx, dy);
       tint(E, is.color);
       blendOnto(ox, E, is.blend, is.opacity, 0, 0, docX, docY);
+    }
+    if (bevel) {
+      if (bv!.shadowOpacity > 0) { tint(bevel.lo, bv!.shadowColor); blendOnto(ox, bevel.lo, bv!.shadowBlend, bv!.shadowOpacity, 0, 0, docX, docY); }
+      if (bv!.opacity > 0) { tint(bevel.hi, bv!.highlightColor); blendOnto(ox, bevel.hi, bv!.highlightBlend, bv!.opacity, 0, 0, docX, docY); }
     }
     const I = scratch('interior', ww, wh), ix = ctx2d(I);
     ix.drawImage(O, 0, 0);
@@ -412,6 +443,133 @@ function edt1d(f: Float64Array, d: Float64Array, v: Int32Array, z: Float64Array,
     d[q] = dq * dq + f[p];
     arg[q] = p;
   }
+}
+
+// ---- Satin ----
+type Satin = NonNullable<LayerStyle['satin']>;
+
+/**
+ * Satin: two blurred copies of the silhouette shifted opposite ways along the angle; where they differ the
+ * satin shows (Invert flips that). Returns a canvas in the satin color whose alpha is the effect.
+ */
+function satinMatte(shape: HTMLCanvasElement, sa: Satin, w: number, h: number): HTMLCanvasElement {
+  const [dx, dy] = lightOffset(sa.angle, sa.distance / 2);
+  const sil = scratch('satin-sil', w, h), sx = ctx2d(sil);
+  sx.drawImage(shape, 0, 0);
+  sx.globalCompositeOperation = 'source-in';
+  sx.fillStyle = '#fff';
+  sx.fillRect(0, 0, w, h);
+  resetCtx(sx);
+  const copy = (key: string, ox: number, oy: number) => {
+    const c = scratch(key, w, h), x = ctx2d(c);
+    x.fillStyle = '#000';
+    x.fillRect(0, 0, w, h);
+    if (sa.size > 0.01) x.filter = `blur(${sa.size / 2}px)`;
+    x.drawImage(sil, ox, oy);
+    resetCtx(x);
+    return c;
+  };
+  const A = copy('satin-a', dx, dy), B = copy('satin-b', -dx, -dy);
+  const ax = ctx2d(A);
+  ax.globalCompositeOperation = 'difference';
+  ax.drawImage(B, 0, 0);
+  resetCtx(ax);
+  const id = ax.getImageData(0, 0, w, h), d = id.data;
+  const { r, g, b } = sa.color;
+  for (let i = 0; i < d.length; i += 4) {
+    const v = d[i];
+    d[i + 3] = sa.invert ? 255 - v : v;
+    d[i] = r; d[i + 1] = g; d[i + 2] = b;
+  }
+  const out = scratch('satin', w, h);
+  ctx2d(out).putImageData(id, 0, 0);
+  return out;
+}
+
+// ---- Bevel & Emboss ----
+type Bevel = NonNullable<LayerStyle['bevel']>;
+
+/**
+ * Highlight / shadow amounts (white canvases, alpha = amount) from a height field over the edge distance `sd`:
+ * Inner Bevel rises inside the edge, Outer Bevel outside it, Emboss across it, Pillow Emboss sinks the edge.
+ * Lit from `angle` at `altitude` like Photoshop's global light.
+ */
+function bevelShading(sd: Float32Array, w: number, h: number, bv: Bevel): { hi: HTMLCanvasElement; lo: HTMLCanvasElement } {
+  const size = Math.max(1, bv.size), n = w * h;
+  const smooth = bv.technique !== 'chisel';
+  const profile = (t: number) => (smooth ? Math.sin((clamp(t, 0, 1) * Math.PI) / 2) : clamp(t, 0, 1));
+  const H = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const s = sd[i];
+    // steepest at the edge, flattening out over `size` (like Photoshop's blurred-alpha height)
+    let t: number;
+    if (bv.style === 'inner') t = profile(-s / size);
+    else if (bv.style === 'outer') t = s <= 0 ? 1 : 1 - profile(s / size);
+    else if (bv.style === 'emboss') t = s <= 0 ? 0.5 + profile(-s / (size / 2)) / 2 : 0.5 - profile(s / (size / 2)) / 2;
+    else t = profile(Math.abs(s) / (size / 2)); // pillow: the edge is the low point
+    H[i] = t;
+  }
+  // Smooth rounds the profile; both get a light pass that hides the distance field's pixel steps at curves
+  const r = smooth ? Math.max(1, Math.round(size * 0.2)) : 1;
+  const Hs = boxBlur(boxBlur(H, w, h, r), w, h, r);
+  const zk = ((size * clamp(bv.depth, 1, 1000)) / 200) * (bv.up ? 1 : -1);
+  const a = (bv.angle * Math.PI) / 180, b = (clamp(bv.altitude, 0, 90) * Math.PI) / 180;
+  const lx = Math.cos(b) * Math.cos(a), ly = -Math.cos(b) * Math.sin(a), lz = Math.sin(b);
+  const flat = lz;
+  const hiImg = new ImageData(w, h), loImg = new ImageData(w, h);
+  const hd = new Uint32Array(hiImg.data.buffer), ld = new Uint32Array(loImg.data.buffer);
+  for (let y = 1; y < h - 1; y++) {
+    for (let x = 1; x < w - 1; x++) {
+      const i = y * w + x;
+      const gx = ((Hs[i + 1] - Hs[i - 1]) / 2) * zk, gy = ((Hs[i + w] - Hs[i - w]) / 2) * zk;
+      if (gx === 0 && gy === 0) continue;
+      const inv = 1 / Math.sqrt(gx * gx + gy * gy + 1);
+      const shade = (-gx * lx - gy * ly + lz) * inv;
+      if (shade > flat) {
+        const v = Math.min(1, (shade - flat) / Math.max(1e-3, 1 - flat));
+        hd[i] = ((((v * 255) | 0) << 24) | 0xffffff) >>> 0;
+      } else if (shade < flat) {
+        const v = Math.min(1, (flat - shade) / Math.max(1e-3, flat));
+        ld[i] = ((((v * 255) | 0) << 24) | 0xffffff) >>> 0;
+      }
+    }
+  }
+  const put = (key: string, img: ImageData) => {
+    const c = scratch(key, w, h), x = ctx2d(c);
+    if (bv.soften > 0) {
+      const t = scratch(`${key}-raw`, w, h);
+      ctx2d(t).putImageData(img, 0, 0);
+      x.filter = `blur(${bv.soften / 2}px)`;
+      x.drawImage(t, 0, 0);
+      resetCtx(x);
+    } else x.putImageData(img, 0, 0);
+    return c;
+  };
+  return { hi: put('bevel-hi', hiImg), lo: put('bevel-lo', loImg) };
+}
+
+/** Separable box blur of a float field (radius r), edges clamped. */
+function boxBlur(src: Float32Array, w: number, h: number, r: number): Float32Array {
+  const tmp = new Float32Array(src.length), out = new Float32Array(src.length);
+  const k = 1 / (2 * r + 1);
+  for (let y = 0; y < h; y++) {
+    const o = y * w;
+    let acc = 0;
+    for (let x = -r; x <= r; x++) acc += src[o + clamp(x, 0, w - 1)];
+    for (let x = 0; x < w; x++) {
+      tmp[o + x] = acc * k;
+      acc += src[o + Math.min(w - 1, x + r + 1)] - src[o + Math.max(0, x - r)];
+    }
+  }
+  for (let x = 0; x < w; x++) {
+    let acc = 0;
+    for (let y = -r; y <= r; y++) acc += tmp[clamp(y, 0, h - 1) * w + x];
+    for (let y = 0; y < h; y++) {
+      out[y * w + x] = acc * k;
+      acc += tmp[Math.min(h - 1, y + r + 1) * w + x] - tmp[Math.max(0, y - r) * w + x];
+    }
+  }
+  return out;
 }
 
 // ---- Gradient overlay ----

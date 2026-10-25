@@ -56,6 +56,8 @@ export class Doc {
   paths: VectorPath[] = [];
   activePathId = 0;
   guides: { dir: 'h' | 'v'; pos: number }[] = [];
+  /** Color Sampler points (Info panel readouts); not part of the history, like Photoshop. */
+  samplers: { x: number; y: number }[] = [];
 
   history: HistoryEntry[] = [];
   historyIndex = 0;

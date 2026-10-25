@@ -51,9 +51,11 @@ function thumbsFor(doc: Doc, L: Layer) {
   return t;
 }
 
+/** Effect names in Photoshop's list order. */
 const FX_NAMES: Record<string, string> = {
-  dropShadow: 'Drop Shadow', innerShadow: 'Inner Shadow', outerGlow: 'Outer Glow', innerGlow: 'Inner Glow',
-  stroke: 'Stroke', colorOverlay: 'Color Overlay', gradientOverlay: 'Gradient Overlay',
+  bevel: 'Bevel & Emboss', stroke: 'Stroke', innerShadow: 'Inner Shadow', innerGlow: 'Inner Glow', satin: 'Satin',
+  colorOverlay: 'Color Overlay', gradientOverlay: 'Gradient Overlay', patternOverlay: 'Pattern Overlay',
+  outerGlow: 'Outer Glow', dropShadow: 'Drop Shadow',
 };
 
 export const layersPanel: Panel = {
@@ -283,7 +285,7 @@ export const layersPanel: Panel = {
 
       if (L.style && hasActiveStyle(L)) {
         const fx = h('div', { class: 'fx-list', style: { paddingLeft: `${52 + depth * 16}px` } }, h('div', null, icon('eye', 12), 'Effects'),
-          ...Object.entries(L.style).filter(([, v]: any) => v?.enabled).map(([k]) => h('div', { style: { paddingLeft: '18px' } }, FX_NAMES[k] ?? k)));
+          ...Object.keys(FX_NAMES).filter((k) => (L.style as any)[k]?.enabled).map((k) => h('div', { style: { paddingLeft: '18px' } }, FX_NAMES[k])));
         fx.addEventListener('dblclick', () => { doc.setActive(L); openLayerStyleDialog('blending'); });
         return h('div', null, r, fx);
       }

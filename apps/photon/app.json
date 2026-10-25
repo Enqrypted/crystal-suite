@@ -1,11 +1,11 @@
 {
   "id": "photon",
   "name": "Photon",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Photo editing, retouching & compositing",
   "entry": "index.html",
   "minLauncher": "0.1.0",
-  "notes": "First release: layers & groups, selections (Magic Wand, Quick Selection, lassos), Free Transform, 27 blend modes, adjustment layers, filters, layer styles, PSD open/save and Export Layer As.",
+  "notes": "Bevel & Emboss, Satin and Pattern Overlay styles; pattern fill layers, Fill with Pattern and Define Pattern; Warp; Edit › Fade; Paste Into; Distribute; Replace Color; Patch, Background Eraser, Pattern Stamp and Color Sampler tools; Save a Copy. Closing Photon asks to save each unsaved document (the window close button needs Crystal Suite 0.2.1).",
   "window": { "width": 1600, "height": 960, "minWidth": 1000, "minHeight": 640, "background": "#1f1f1f", "maximize": true },
   "fileTypes": ["psd", "psb", "phtn", "png", "jpg", "jpeg", "gif", "webp", "bmp", "svg", "ico", "avif"]
 }

@@ -16,6 +16,9 @@ import { liftContent, composeOnto, renderQuad, quadFromRect, transformMask, Quad
 import { getTool, currentTool } from '../tools/tool';
 import type { TransformTool } from '../tools/transform';
 import { HISTORY_LIMIT } from '../core/document';
+import { addPattern, defaultPattern, loadPattern, Pattern, tiledPattern, usePattern } from '../core/patterns';
+import { patternPicker } from '../ui/patternpicker';
+import { promptDialog } from '../dialogs/dialog';
 import { block } from '../core/groups';
 
 // ---------- clipboard ----------
@@ -80,6 +83,46 @@ export function pasteCanvas(c: HTMLCanvasElement, inPlace?: { x: number; y: numb
   doc.insertLayer(L);
   if (doc.selection) doc.setSelection(null);
   doc.commit('Paste', before);
+}
+
+/** The image on the clipboard: the system's (copied from other apps) or our own. */
+async function clipboardImage(): Promise<HTMLCanvasElement | null> {
+  try {
+    const items = await (navigator.clipboard as any).read();
+    for (const it of items) {
+      const type = it.types.find((t: string) => t.startsWith('image/'));
+      if (!type) continue;
+      const img = await createImageBitmap(await it.getType(type));
+      const c = createCanvas(img.width, img.height);
+      ctx2d(c).drawImage(img, 0, 0);
+      return c;
+    }
+  } catch { /* fall back to the internal clipboard */ }
+  return app.clipboard?.canvas ?? null;
+}
+
+/**
+ * Edit > Paste Special > Paste Into / Paste Outside: the clipboard as a new layer centered on the selection,
+ * with a layer mask showing it only inside (or outside) the selection.
+ */
+export async function pasteInto(outside = false) {
+  const doc = app.doc;
+  if (!doc) return;
+  if (!doc.selection) { toast('Make a selection first'); return; }
+  const c = await clipboardImage();
+  if (!c) { toast('Clipboard is empty'); return; }
+  const before = doc.captureState();
+  const sb = doc.selectionBounds()!;
+  const L = new Layer(doc.nextLayerName(), 1, 1);
+  L.canvas = cloneCanvas(c);
+  L.x = Math.round(sb.x + sb.w / 2 - c.width / 2);
+  L.y = Math.round(sb.y + sb.h / 2 - c.height / 2);
+  L.mask = outside ? invertMask(doc.selection, doc.width, doc.height) : cloneCanvas(doc.selection);
+  L.maskX = 0; L.maskY = 0;
+  doc.ensureCoverage(L);
+  doc.insertLayer(L);
+  doc.setSelection(null);
+  doc.commit(outside ? 'Paste Outside' : 'Paste Into', before);
 }
 
 export async function paste(inPlace = false) {
@@ -156,15 +199,38 @@ export async function clearSelection(stepName = 'Clear') {
 }
 
 // ---------- fill / stroke ----------
-type FillContents = 'fg' | 'bg' | 'color' | 'content-aware' | 'black' | 'gray' | 'white';
-export async function fillWith(contents: FillContents, opacity = 1, mode: BlendMode = 'normal', preserve = false, color?: RGB) {
+
+/** Edit > Define Pattern: the selection's rectangle (or the whole image) of the visible image becomes a pattern. */
+export async function definePattern() {
+  const doc = activeDoc(); if (!doc) return;
+  const r = rectIntersect(doc.selectionBounds() ?? { x: 0, y: 0, w: doc.width, h: doc.height }, { x: 0, y: 0, w: doc.width, h: doc.height });
+  if (!r || r.w < 1 || r.h < 1) return;
+  const name = await promptDialog('Pattern Name', 'Name:', doc.name.replace(/\.[^.]+$/, '') + ' pattern');
+  if (name === null) return;
+  const c = createCanvas(r.w, r.h);
+  ctx2d(c).drawImage(flattenLayers(doc, doc.layers), -r.x, -r.y);
+  const p = addPattern(name.trim() || 'Pattern', c);
+  if (!p) { await alertDialog('Define Pattern', 'There is no room left to keep another pattern. Delete some (right-click them in a pattern picker) and try again.'); return; }
+  usePattern(p);
+  toast('Pattern “' + p.name + '” defined (' + p.w + ' × ' + p.h + ' px)');
+}
+type FillContents = 'fg' | 'bg' | 'color' | 'pattern' | 'content-aware' | 'black' | 'gray' | 'white';
+export async function fillWith(contents: FillContents, opacity = 1, mode: BlendMode = 'normal', preserve = false, color?: RGB, pattern?: Pattern, patternScale = 1) {
   const doc = activeDoc(); if (!doc) return;
   const t = await editableTarget(doc, 'fill');
   if (!t) return;
   if (contents === 'content-aware') { contentAwareFill(); return; }
   const c: RGB = contents === 'fg' ? app.fg : contents === 'bg' ? app.bg : contents === 'black' ? { r: 0, g: 0, b: 0 } : contents === 'white' ? { r: 255, g: 255, b: 255 } : contents === 'gray' ? { r: 128, g: 128, b: 128 } : color ?? app.fg;
+  let src = solidFor(t, c);
+  if (contents === 'pattern') {
+    const p = pattern ?? defaultPattern();
+    await loadPattern(p);
+    // tiles anchored to the document origin, like Photoshop
+    const tiled = tiledPattern(p, t.canvas.width, t.canvas.height, patternScale, -t.x, -t.y);
+    if (!tiled) { toast('The pattern could not be loaded'); return; }
+    src = tiled;
+  }
   const before = doc.captureState();
-  const src = solidFor(t, c);
   const tt = preserve && !t.alphaOnly ? { ...t, lockAlpha: true } : t;
   t.replace(paintOnto(doc, tt, src, opacity, mode));
   doc.commit('Fill', before);
@@ -173,10 +239,17 @@ export async function fillWith(contents: FillContents, opacity = 1, mode: BlendM
 export async function fillDialog() {
   const doc = activeDoc(); if (!doc) return;
   let custom: RGB = app.fg;
+  const pat = patternPicker({ value: defaultPattern(), size: 36, onChange: () => {} });
+  const patScale = numberInput({ value: 100, min: 1, max: 1000, unit: '%', width: 56 });
+  const patRow = h('div', { class: 'form-grid', style: { display: 'none' } },
+    h('span', { class: 'field-label' }, 'Custom Pattern:'), h('div', { class: 'row' }, pat.el, h('span', { class: 'field-label' }, 'Scale:'), patScale.el));
   const contents = select({
-    options: [{ value: 'fg', label: 'Foreground Color' }, { value: 'bg', label: 'Background Color' }, { value: 'color', label: 'Color...' }, { value: 'content-aware', label: 'Content-Aware' }, '-', { value: 'black', label: 'Black' }, { value: 'gray', label: '50% Gray' }, { value: 'white', label: 'White' }],
+    options: [{ value: 'fg', label: 'Foreground Color' }, { value: 'bg', label: 'Background Color' }, { value: 'color', label: 'Color...' }, { value: 'content-aware', label: 'Content-Aware' }, { value: 'pattern', label: 'Pattern' }, '-', { value: 'black', label: 'Black' }, { value: 'gray', label: '50% Gray' }, { value: 'white', label: 'White' }],
     value: 'fg', width: 200,
-    onChange: async (v) => { if (v === 'color') { const c = await pickColor(custom, 'Choose a color:'); if (c) custom = c; } },
+    onChange: async (v) => {
+      patRow.style.display = v === 'pattern' ? '' : 'none';
+      if (v === 'color') { const c = await pickColor(custom, 'Choose a color:'); if (c) custom = c; }
+    },
   });
   const mode = select({ options: BLEND_MODES.map((m) => (m === '-' ? '-' : { value: m, label: BLEND_NAMES[m as BlendMode] })) as any, value: 'normal', width: 160 });
   const op = numberInput({ value: 100, min: 0, max: 100, unit: '%', width: 50 });
@@ -185,11 +258,12 @@ export async function fillDialog() {
     title: 'Fill', width: 400,
     content: h('div', { class: 'col' },
       h('div', { class: 'form-grid' }, h('span', { class: 'field-label' }, 'Contents:'), contents.el),
+      patRow,
       h('fieldset', { class: 'ps-section' }, h('legend', null, 'Blending'),
         h('div', { class: 'form-grid' }, h('span', { class: 'field-label' }, 'Mode:'), mode.el, h('span', { class: 'field-label' }, 'Opacity:'), op.el, h('span'), pres.el))),
   });
   if (!ok) return;
-  await fillWith(contents.get() as FillContents, op.get() / 100, mode.get() as BlendMode, pres.get(), custom);
+  await fillWith(contents.get() as FillContents, op.get() / 100, mode.get() as BlendMode, pres.get(), custom, pat.get(), patScale.get() / 100);
 }
 
 export async function strokeDialog() {
