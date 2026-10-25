@@ -8,13 +8,13 @@
     {
       "id": "photon",
       "name": "Photon",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "description": "Photo editing, retouching & compositing",
-      "url": "https://github.com/Enqrypted/crystal-suite/releases/download/photon-v0.2.0/photon-0.2.0.zip",
-      "size": 289972,
-      "sha256": "9c9c8c436cc28d75efa2928ea3c34668d245785c0b95d4760c46f3d074aea8c2",
+      "url": "https://github.com/Enqrypted/crystal-suite/releases/download/photon-v0.2.1/photon-0.2.1.zip",
+      "size": 291271,
+      "sha256": "d3a8d816a96f6e7be1c1478701b09f35a6517c619a509af667d69aedf2cac2cf",
       "minLauncher": "0.1.0",
-      "notes": "Bevel & Emboss, Satin and Pattern Overlay styles; pattern fill layers, Fill with Pattern and Define Pattern; Warp; Edit › Fade; Paste Into; Distribute; Replace Color; Patch, Background Eraser, Pattern Stamp and Color Sampler tools; Save a Copy. Closing Photon asks to save each unsaved document (the window close button needs Crystal Suite 0.2.1)."
+      "notes": "Text in edit mode has a bounding box: drag its handles to scale point text or resize a paragraph box (the text rewraps; Ctrl+drag scales it), or drag just outside the box to move the text. 0.2.0 added Bevel & Emboss, Satin, patterns, Warp, Fade, Paste Into, Replace Color and the Patch, Background Eraser, Pattern Stamp and Color Sampler tools."
     },
     {
       "id": "prism",
