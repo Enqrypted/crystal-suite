@@ -126,6 +126,24 @@ const APPS = [
       ['Always ready', 'Starts with Windows in the tray. Your clips are in the Onyx window, with previews and a player.'],
     ],
   },
+  {
+    id: 'opal', name: 'Opal', tag: 'Photo viewer', alt: 'Like the Windows Photos viewer',
+    blurb: 'A fast photo viewer that opens iPhone HEIC photos with no extra codecs, steps through your folders and turns HEIC into JPEG when you need to share.',
+    ticks: ['Opens HEIC, AVIF, JPEG, PNG, GIF, WebP and more', 'Filmstrip, grid, zoom, slideshow and the photo’s details', 'Converts HEIC to JPEG and keeps the date taken'],
+    shots: [
+      ['opal-viewer.webp', 'An iPhone HEIC photo of a lake at sunset in Opal, with the details panel showing the date, camera, exposure and location, and a filmstrip of the folder below', 'Every photo in the folder, one key press apart.'],
+      ['opal-grid.webp', 'Opal’s grid of a folder of iPhone photos', 'The whole folder at a glance.'],
+      ['opal-convert.webp', 'Opal’s Convert HEIC photos dialog: JPEG, quality, keep the photo’s details and location', 'HEIC to JPEG for a whole folder, details included.'],
+    ],
+    features: [
+      ['iPhone photos, no codecs', 'HEIC and HEIF open as they are, in their full Display P3 colour. No Microsoft extensions to buy or install.'],
+      ['Instant', 'The preview inside a HEIC shows at once, the full photo a moment later, and the next photos are already decoded.'],
+      ['Your whole folder', 'Arrow keys, swipes or the wheel, a filmstrip and a grid, sorted by name, date or size. New photos appear by themselves.'],
+      ['Look closer', 'Zoom with the wheel, a pinch or a double-click, drag around, fit to the window. Full screen and slideshows.'],
+      ['The details', 'When and where it was taken, the camera and lens, shutter speed, aperture and ISO, with a link to the map.'],
+      ['Convert and tidy up', 'Save copies as JPEG, PNG or WebP, convert a folder at once, rotate JPEGs losslessly, delete to the Recycle Bin.'],
+    ],
+  },
 ];
 for (const a of APPS) {
   const c = catalog.apps.find((x) => x.id === a.id);
@@ -222,12 +240,12 @@ const band = () => `<section class="band waved"><canvas class="waves" data-shape
 
 const home = {
   file: 'index.html', title: 'Crystal Suite', current: 'home',
-  description: 'Crystal Suite is a free, open-source creative suite for Windows: photo editing, a private browser, video editing, desktop widgets, a PDF editor and instant replay for games. No account, no subscription.',
+  description: 'Crystal Suite is a free, open-source creative suite for Windows: photo editing, a private browser, video editing, desktop widgets, a PDF editor, instant replay for games and a photo viewer. No account, no subscription.',
   body: `<section class="hero waved"><canvas class="waves" aria-hidden="true"></canvas><div class="wrap hero-grid">
   <div class="hero-copy">
     <span class="pill"><i></i>Free &amp; open source &middot; MIT license</span>
     <h1>The free creative suite for Windows.</h1>
-    <p class="lede">Photo editing, a private browser, video editing, desktop widgets, a PDF editor and instant replay for games, in one small launcher. No account, no subscription, no telemetry.</p>
+    <p class="lede">Photo editing, a private browser, video editing, desktop widgets, a PDF editor, instant replay for games and a photo viewer, in one small launcher. No account, no subscription, no telemetry.</p>
     <div class="cta-row"><a class="btn" href="download.html">${ICON.download}Download for Windows</a><a class="btn ghost" href="${REPO}">${ICON.github}View on GitHub</a></div>
     <p class="meta">Version ${LAUNCHER} &middot; Windows 10 &amp; 11, 64-bit &middot; ${LAUNCHER_SIZE}</p>
   </div>
@@ -239,7 +257,7 @@ const home = {
 </div></section>
 
 <section id="apps"><div class="wrap">
-  <div class="section-head"><span class="eyebrow">Six apps, one launcher</span><h2>Everything in the suite</h2><p class="lede">Install only the apps you want. Each one gets its own shortcut, opens on its own and keeps itself up to date.</p></div>
+  <div class="section-head"><span class="eyebrow">Seven apps, one launcher</span><h2>Everything in the suite</h2><p class="lede">Install only the apps you want. Each one gets its own shortcut, opens on its own and keeps itself up to date.</p></div>
   <div class="app-rows">${APPS.map(appRow).join('\n')}</div>
 </div></section>
 
@@ -258,7 +276,7 @@ ${band()}`,
 
 const download = {
   file: 'download.html', title: 'Download Crystal Suite', current: 'download',
-  description: `Download Crystal Suite ${LAUNCHER} for Windows 10 and 11: the free launcher for Photon, Prism, Cut, Facet, Quartz and Onyx.`,
+  description: `Download Crystal Suite ${LAUNCHER} for Windows 10 and 11: the free launcher for Photon, Prism, Cut, Facet, Quartz, Onyx and Opal.`,
   body: `<section class="hero waved app-hero"><canvas class="waves" data-shape="low" aria-hidden="true"></canvas><div class="wrap">
   <span class="pill"><i></i>Version ${LAUNCHER} &middot; free</span>
   <h1>Download Crystal Suite</h1>
@@ -337,7 +355,7 @@ ${band()}`,
   };
 };
 function featureTitle(a) {
-  return { photon: 'A photo editor you already know', prism: 'The web, without the tracking', cut: 'Edit like it’s Vegas', facet: 'A desktop you’ll want to look at', quartz: 'Everything you do with PDFs', onyx: 'Never miss the moment' }[a.id];
+  return { photon: 'A photo editor you already know', prism: 'The web, without the tracking', cut: 'Edit like it’s Vegas', facet: 'A desktop you’ll want to look at', quartz: 'Everything you do with PDFs', onyx: 'Never miss the moment', opal: 'Every photo, one key press away' }[a.id];
 }
 
 // ---------- write ----------
