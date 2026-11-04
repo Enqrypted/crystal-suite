@@ -79,6 +79,20 @@
       "sha256": "ab6c41a73b264e3b63025bb21bdeea9d19e8fe598e50a00340f776d914e1c8c3",
       "minLauncher": "0.2.0",
       "notes": "Click the Saved notice to see your clip: it has a Show in folder button that opens File Explorer with the clip selected. The notice stays up a little longer, and for as long as the pointer is on it; clicking it doesn't take the focus away from your game."
+    },
+    {
+      "id": "opal",
+      "name": "Opal",
+      "version": "0.1.0",
+      "description": "Photo viewer",
+      "badge": "Op",
+      "color": "#ffc65c",
+      "bg": "#2b1a00",
+      "url": "https://github.com/Enqrypted/crystal-suite/releases/download/opal-v0.1.0/opal-0.1.0.zip",
+      "size": 616735,
+      "sha256": "9d78ef7c81fee8708c1d5127befbc6b258ae18a299bcb39192264df065786dbc",
+      "minLauncher": "0.2.0",
+      "notes": "First release: a fast photo viewer that opens iPhone HEIC photos (and AVIF, JPEG, PNG, GIF, WebP, BMP), with folder browsing, filmstrip and grid, zoom, rotate, slideshow, photo details, and HEIC to JPEG conversion that keeps the date taken."
     }
   ]
 }
