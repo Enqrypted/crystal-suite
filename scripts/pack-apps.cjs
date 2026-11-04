@@ -67,6 +67,15 @@ const CONTENTS = {
       { name: 'THIRD_PARTY_NOTICES.md', data: fs.readFileSync(path.join(ROOT, 'apps', 'onyx', 'THIRD_PARTY_NOTICES.md')) },
     ];
   },
+  // a module app: main process + preload + the viewer page with libheif (HEIC) as its own files
+  opal: () => {
+    need(path.join(ROOT, 'dist', 'opal', 'main.cjs'));
+    need(path.join(ROOT, 'dist', 'opal', 'web', 'libheif', 'libheif.wasm'));
+    return [
+      ...tree(path.join(ROOT, 'dist', 'opal')),
+      { name: 'THIRD_PARTY_NOTICES.md', data: fs.readFileSync(path.join(ROOT, 'apps', 'opal', 'THIRD_PARTY_NOTICES.md')) },
+    ];
+  },
 };
 
 function need(file) {

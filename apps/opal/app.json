@@ -1,0 +1,26 @@
+{
+  "id": "opal",
+  "name": "Opal",
+  "version": "0.1.0",
+  "description": "Photo viewer",
+  "badge": "Op",
+  "color": "#ffc65c",
+  "bg": "#2b1a00",
+  "main": "main.cjs",
+  "minLauncher": "0.2.0",
+  "notes": "First release: a fast photo viewer that opens iPhone HEIC photos (and AVIF, JPEG, PNG, GIF, WebP, BMP), with folder browsing, filmstrip and grid, zoom, rotate, slideshow, photo details, and HEIC to JPEG conversion that keeps the date taken.",
+  "fileTypes": [
+    "heic",
+    "heif",
+    "hif",
+    "avif",
+    "jpg",
+    "jpeg",
+    "jfif",
+    "png",
+    "gif",
+    "webp",
+    "bmp",
+    "ico"
+  ]
+}

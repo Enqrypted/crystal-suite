@@ -12,6 +12,7 @@ The **Crystal Suite** app is a launcher (like Creative Cloud) that installs, upd
 | **Facet** | ✅ Available (install it from the launcher) | iPhone-style folders and widgets for the Windows desktop |
 | **Quartz** | ✅ Available (install it from the launcher) | Adobe Acrobat |
 | **Onyx** | ✅ Available (install it from the launcher) | NVIDIA ShadowPlay's instant replay |
+| **Opal** | ✅ Available (install it from the launcher) | the Windows Photos viewer, with iPhone HEIC photos |
 | Vector | Planned | Illustrator |
 | Darkroom | Planned | Lightroom |
 | Motion | Planned | After Effects |
@@ -21,7 +22,7 @@ The **Crystal Suite** app is a launcher (like Creative Cloud) that installs, upd
 
 Get **`CrystalSuite-Setup-x.y.z.exe`** from the [latest release](https://github.com/Enqrypted/crystal-suite/releases/latest) (or the portable **`CrystalSuite-Portable-x.y.z.exe`**, no installation needed).
 
-Crystal Suite is a launcher, like Creative Cloud: open it, click **Install** next to an app and it downloads (Photon, Cut, Facet and Onyx are under 300 KB, Prism and Quartz about 3 MB, because the apps share the launcher's runtime), verifies and installs it. From then on:
+Crystal Suite is a launcher, like Creative Cloud: open it, click **Install** next to an app and it downloads (Photon, Cut, Facet and Onyx are under 300 KB, Opal under 1 MB, Prism and Quartz about 3 MB, because the apps share the launcher's runtime), verifies and installs it. From then on:
 
 - **Open** starts the app; each app also gets its own Start-menu (and optional desktop) shortcut and taskbar icon.
 - New versions show up under **Updates** (with a count in the sidebar). They install in the background automatically unless you turn that off in **Settings**; an app that is open keeps running and switches to the new version the next time you start it.
@@ -45,6 +46,7 @@ npm run cut        # builds Cut from source and opens it
 npm run facet      # builds Facet from source and runs it (widgets on your desktop + its window)
 npm run quartz     # builds Quartz from source and opens it (add a PDF path to open it: npx electron apps/quartz/standalone/main.cjs file.pdf)
 npm run onyx       # builds Onyx from source and runs it (instant replay in the background + its window)
+npm run opal       # builds Opal from source and opens it (add a photo path to open it: npx electron apps/opal/standalone/main.cjs photo.heic)
 npm run dev        # Photon in your browser with hot reload: http://localhost:5173
 ```
 
@@ -87,6 +89,11 @@ git commit -am "Quartz <v>" && git push
 npm run pack:apps
 gh release create onyx-v<v> release/apps/onyx-<v>.zip --title "Onyx <v>" --latest=false
 git commit -am "Onyx <v>" && git push
+
+# A new Opal version: bump "version" in apps/opal/app.json, then
+npm run pack:apps
+gh release create opal-v<v> release/apps/opal-<v>.zip --title "Opal <v>" --latest=false
+git commit -am "Opal <v>" && git push
 
 # A new Prism version: bump "version" in apps/prism/app.json, then
 npm run pack:apps && npm run dist:prism  # the launcher package + the standalone Prism-Setup/Portable exes
@@ -160,6 +167,21 @@ Instant replay for games: Onyx keeps the last two minutes of every game you have
 - **Clips at hand** — the Onyx window lists your clips with previews and plays them, shows what is being recorded and has save buttons too. It starts with Windows in the tray, so it's ready whenever you play.
 
 The capture and encoding are done by a small helper (`OnyxHelper.exe`, about 70 KB) compiled from [apps/onyx/native](apps/onyx/native) with the C# compiler that ships with Windows.
+
+## Opal features
+
+A photo viewer for Windows that opens iPhone photos (HEIC) with no extra codecs, and everything else a photo viewer should open.
+
+- **Every format** — HEIC/HEIF (no Microsoft HEIF or HEVC extensions needed: Opal brings its own decoder), AVIF, JPEG, PNG, GIF and WebP (animations play), BMP and ICO. iPhone photos show in their full Display P3 colour and the right way up, and a HEIC renamed to .jpg still opens.
+- **Fast** — a HEIC photo appears at once from the small preview inside the file while the full photo decodes (a 12-megapixel photo in about a fifth of a second); the photos either side decode in the background, so stepping through a folder is immediate.
+- **Browse the folder** — arrow keys, the on-screen arrows, swipes or the mouse wheel step through the photos in the folder (sorted by name, date or size); a filmstrip and a grid of the whole folder show thumbnails (Windows' own for JPEG and PNG, the HEIC's built-in preview, kept on disk for next time); photos added or deleted in Explorer show up straight away.
+- **Look closer** — zoom with the wheel, a pinch, keys or a double-click (to 100%), drag to look around, fit to the window; full screen and slideshows.
+- **Details** — date and time taken, camera and lens, shutter speed, aperture, ISO and focal length, size and colour profile, and where it was taken (with a link to the map).
+- **Tidy up** — rotate (a JPEG is turned in the file itself, losslessly: only its orientation tag changes), delete to the Recycle Bin, copy to the clipboard, show in Explorer, or edit in Photon.
+- **Convert** — save a copy as JPEG, PNG or WebP, or convert every HEIC photo in a folder to JPEG at once. The copies keep the date taken and camera details (and the location, if you want).
+- **Default photo viewer** — Opal lists itself under **Open with** for the photo types it opens, and in Settings › Default apps; making it the default stays your choice. Uninstalling Opal removes its entries.
+
+HEIC decoding uses [libheif](https://github.com/strukturag/libheif) with the libde265 HEVC decoder (LGPL-3.0, built for WebAssembly by [libheif-js](https://github.com/catdad-experiments/libheif-js)), shipped unmodified as its own files.
 
 ## Prism features
 
@@ -236,6 +258,11 @@ apps/onyx/              Onyx (TypeScript + C#)
   src/web/              the Onyx window and the in-game overlay (picker and notices)
   native/               OnyxHelper.exe: window capture, GPU conversion and hardware H.264 encoding, sound, the
                         replay buffers
+apps/opal/              Opal (TypeScript)
+  src/main/             main process: windows, reading photos, listing and watching folders, thumbnails (Windows'
+                        own + a disk cache), the Recycle Bin, clipboard, saving copies, photo-viewer registration
+  src/web/              the viewer: zoom/pan, HEIC decoding in workers (libheif), filmstrip and grid, details
+                        (exifr), lossless JPEG rotation, saving copies and converting folders
 apps/prism/             Prism (TypeScript)
   src/main/             main process: windows & tabs, profiles/privacy, ad blocking, downloads, history,
                         bookmarks, permissions, menus, default-browser registration, prism:// pages
@@ -251,6 +278,7 @@ scripts/build-cut.cjs   bundles Cut (esbuild + vite)
 scripts/build-facet.cjs bundles Facet (esbuild + vite) and compiles FacetHelper.exe
 scripts/build-quartz.cjs bundles Quartz (esbuild + vite) with PDF.js's data files
 scripts/build-onyx.cjs  bundles Onyx (esbuild + vite) and compiles OnyxHelper.exe
+scripts/build-opal.cjs  bundles Opal (esbuild + vite) with libheif's decoder files
 scripts/pack-apps.cjs   packages apps into release zips and writes catalog.json
 scripts/build-site.cjs  builds the website in site/ (home, download and app pages; npm run site)
 site/                   the website: generated pages, style.css, site.js and the app screenshots in img/
@@ -261,4 +289,4 @@ Each layer is a canvas positioned in document space; undo is snapshot-based (str
 
 ## License
 
-MIT — see [LICENSE](LICENSE). PSD reading/writing uses [ag-psd](https://github.com/Agamnentzar/ag-psd) (MIT). Prism's ad blocking uses [@ghostery/adblocker](https://github.com/ghostery/adblocker) (MPL-2.0) — see [apps/prism/THIRD_PARTY_NOTICES.md](apps/prism/THIRD_PARTY_NOTICES.md). Cut reads and writes media with [Mediabunny](https://github.com/Vanilagy/mediabunny) (MPL-2.0) — see [apps/cut/THIRD_PARTY_NOTICES.md](apps/cut/THIRD_PARTY_NOTICES.md). Facet uses no third-party code. Quartz uses [PDF.js](https://github.com/mozilla/pdf.js) (Apache-2.0) and [pdf-lib](https://github.com/Hopding/pdf-lib) (MIT) — see [apps/quartz/THIRD_PARTY_NOTICES.md](apps/quartz/THIRD_PARTY_NOTICES.md). Onyx writes its clips with [Mediabunny](https://github.com/Vanilagy/mediabunny) (MPL-2.0) — see [apps/onyx/THIRD_PARTY_NOTICES.md](apps/onyx/THIRD_PARTY_NOTICES.md). "Photoshop" and "Acrobat" are trademarks of Adobe, "Chrome" of Google, "Vegas Pro" of MAGIX, "iPhone" of Apple and "ShadowPlay" of NVIDIA; game names belong to their owners; Crystal Suite is an independent project and is not affiliated with any of them.
+MIT — see [LICENSE](LICENSE). PSD reading/writing uses [ag-psd](https://github.com/Agamnentzar/ag-psd) (MIT). Prism's ad blocking uses [@ghostery/adblocker](https://github.com/ghostery/adblocker) (MPL-2.0) — see [apps/prism/THIRD_PARTY_NOTICES.md](apps/prism/THIRD_PARTY_NOTICES.md). Cut reads and writes media with [Mediabunny](https://github.com/Vanilagy/mediabunny) (MPL-2.0) — see [apps/cut/THIRD_PARTY_NOTICES.md](apps/cut/THIRD_PARTY_NOTICES.md). Facet uses no third-party code. Quartz uses [PDF.js](https://github.com/mozilla/pdf.js) (Apache-2.0) and [pdf-lib](https://github.com/Hopding/pdf-lib) (MIT) — see [apps/quartz/THIRD_PARTY_NOTICES.md](apps/quartz/THIRD_PARTY_NOTICES.md). Onyx writes its clips with [Mediabunny](https://github.com/Vanilagy/mediabunny) (MPL-2.0) — see [apps/onyx/THIRD_PARTY_NOTICES.md](apps/onyx/THIRD_PARTY_NOTICES.md). Opal decodes HEIC with [libheif](https://github.com/strukturag/libheif) and libde265 (LGPL-3.0, kept as separate, replaceable files) and reads photo details with [exifr](https://github.com/MikeKovarik/exifr) (MIT) — see [apps/opal/THIRD_PARTY_NOTICES.md](apps/opal/THIRD_PARTY_NOTICES.md). "Photoshop" and "Acrobat" are trademarks of Adobe, "Chrome" of Google, "Vegas Pro" of MAGIX, "iPhone" of Apple and "ShadowPlay" of NVIDIA; game names belong to their owners; Crystal Suite is an independent project and is not affiliated with any of them.

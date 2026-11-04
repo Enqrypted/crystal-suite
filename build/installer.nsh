@@ -1,5 +1,12 @@
 ; Crystal Suite downloads its apps into %LOCALAPPDATA%\Crystal Suite and adds shortcuts for them.
 ; Remove those too when Crystal Suite itself is uninstalled (but not when it is being updated).
+
+; Opal lists itself under "Open with" for each photo type it opens
+!macro OpalUnregister EXT
+  DeleteRegValue HKCU "Software\Classes\.${EXT}\OpenWithProgids" "Opal.${EXT}"
+  DeleteRegKey HKCU "Software\Classes\Opal.${EXT}"
+!macroend
+
 !macro customUnInstall
   ${ifNot} ${isUpdated}
     Delete "$DESKTOP\Photon.lnk"
@@ -14,6 +21,8 @@
     Delete "$SMPROGRAMS\Quartz.lnk"
     Delete "$DESKTOP\Onyx.lnk"
     Delete "$SMPROGRAMS\Onyx.lnk"
+    Delete "$DESKTOP\Opal.lnk"
+    Delete "$SMPROGRAMS\Opal.lnk"
     ; Facet: starting with Windows, and the Windows desktop icons if Facet hid them
     DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "CrystalSuite.Facet"
     DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run" "CrystalSuite.Facet"
@@ -45,6 +54,21 @@
     DeleteRegKey HKCU "Software\Crystal Suite\Quartz"
     DeleteRegValue HKCU "Software\Classes\.pdf\OpenWithProgids" "Quartz.PDF"
     DeleteRegKey HKCU "Software\Classes\Quartz.PDF"
+    ; Opal's registration as a photo viewer
+    DeleteRegValue HKCU "Software\RegisteredApplications" "Opal"
+    DeleteRegKey HKCU "Software\Crystal Suite\Opal"
+    !insertmacro OpalUnregister heic
+    !insertmacro OpalUnregister heif
+    !insertmacro OpalUnregister hif
+    !insertmacro OpalUnregister avif
+    !insertmacro OpalUnregister jpg
+    !insertmacro OpalUnregister jpeg
+    !insertmacro OpalUnregister jfif
+    !insertmacro OpalUnregister png
+    !insertmacro OpalUnregister gif
+    !insertmacro OpalUnregister webp
+    !insertmacro OpalUnregister bmp
+    !insertmacro OpalUnregister ico
     DeleteRegKey /ifempty HKCU "Software\Crystal Suite"
     RMDir /r "$LOCALAPPDATA\Crystal Suite\Apps"
     Delete "$LOCALAPPDATA\Crystal Suite\installed.json"
