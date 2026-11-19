@@ -1,11 +1,11 @@
 {
   "id": "photon",
   "name": "Photon",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Photo editing, retouching & compositing",
   "entry": "index.html",
   "minLauncher": "0.1.0",
-  "notes": "Text in edit mode has a bounding box: drag its handles to scale point text or resize a paragraph box (the text rewraps; Ctrl+drag scales it), or drag just outside the box to move the text. 0.2.0 added Bevel & Emboss, Satin, patterns, Warp, Fade, Paste Into, Replace Color and the Patch, Background Eraser, Pattern Stamp and Color Sampler tools.",
+  "notes": "Photon now runs on macOS too (in Crystal Suite 0.3.0 for Mac): menus and tooltips show Mac shortcuts like ⇧⌘S, ⌘ works wherever Ctrl does, and the font list has the Mac fonts. On Windows nothing changes.",
   "window": { "width": 1600, "height": 960, "minWidth": 1000, "minHeight": 640, "background": "#1f1f1f", "maximize": true },
   "fileTypes": ["psd", "psb", "phtn", "png", "jpg", "jpeg", "gif", "webp", "bmp", "svg", "ico", "avif"]
 }

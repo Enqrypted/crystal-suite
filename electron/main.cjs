@@ -65,7 +65,7 @@ function showLauncher() {
   launcher.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   launcher.webContents.on('will-navigate', (e) => e.preventDefault());
   launcher.webContents.on('before-input-event', (e, input) => {
-    if (input.type === 'keyDown' && input.control && input.shift && input.key.toLowerCase() === 'i') launcher.webContents.toggleDevTools();
+    if (input.type === 'keyDown' && input.key.toLowerCase() === 'i' && ((input.control && input.shift) || (input.meta && input.alt))) launcher.webContents.toggleDevTools();
   });
   launcher.on('closed', () => { launcher = null; });
   return launcher;
@@ -209,7 +209,7 @@ function createAppWindow(id, entry, m, files, icons) {
   });
   // keyboard: let the app handle everything (Ctrl+W, Ctrl+N, Ctrl+T...), but keep dev tools on Ctrl+Shift+I
   win.webContents.on('before-input-event', (e, input) => {
-    if (input.type === 'keyDown' && input.control && input.shift && input.key.toLowerCase() === 'i') win.webContents.toggleDevTools();
+    if (input.type === 'keyDown' && input.key.toLowerCase() === 'i' && ((input.control && input.shift) || (input.meta && input.alt))) win.webContents.toggleDevTools();
   });
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('https://') || url.startsWith('http://')) { shell.openExternal(url); return { action: 'deny' }; }
@@ -320,19 +320,26 @@ function readFileForRenderer(p) {
 }
 
 // ---------- app lifecycle ----------
+// macOS: files opened from Finder or dropped on the Dock icon arrive as events (also before the app is ready)
+const pendingFiles = [];
+app.on('open-file', (e, file) => {
+  e.preventDefault();
+  if (suite) handleArgs([process.execPath, file], false);
+  else pendingFiles.push(file);
+});
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) app.quit();
 else {
   app.on('second-instance', (_e, argv) => { if (suite) handleArgs(argv, false); });
   app.whenReady().then(() => {
-    Menu.setApplicationMenu(null);
+    Menu.setApplicationMenu(process.platform === 'darwin' ? Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }, { role: 'windowMenu' }]) : null);
     if (process.platform === 'win32') app.setAppUserModelId('app.crystalsuite.suite');
     const { Suite } = require('./suite.cjs');
     suite = new Suite();
     suite.running = (id) => windowsOf(id).length;
     suite.on('change', pushState);
     suite.cleanupAll();
-    handleArgs(process.argv, true);
+    handleArgs(pendingFiles.length ? [process.execPath, ...pendingFiles] : process.argv, true);
     suite.refresh(); // checks for new apps and updates in the background
     setInterval(() => refreshIfStale(60 * 60 * 1000), 6 * 60 * 60 * 1000).unref();
   });

@@ -7,10 +7,22 @@ export interface TopMenu { label: string; items: () => MenuItem[] }
 
 const subItems = (it: MenuItem) => (typeof it.submenu === 'function' ? it.submenu() : it.submenu ?? []);
 
+/** One shortcut the Mac way: modifiers as symbols in Apple's order (⌥⇧⌘), no plus signs: 'Shift+Ctrl+S' → '⇧⌘S'. */
+function macCombo(s: string) {
+  let parts = s.split('+');
+  if (s.endsWith('++')) parts = [...parts.slice(0, -2), '+'];
+  const key = parts.pop()!;
+  const m = new Set(parts);
+  return `${m.has('Alt') ? '⌥' : ''}${m.has('Shift') ? '⇧' : ''}${m.has('Ctrl') ? '⌘' : ''}${key}`;
+}
 /** Display form of a shortcut ('Ctrl' → '⌘' on mac). */
 export function displayShortcut(s?: string) {
   if (!s) return '';
-  return isMac ? s.replace(/Ctrl/g, '⌘').replace(/Alt/g, '⌥').replace(/Shift/g, '⇧') : s;
+  return isMac ? s.split(' / ').map(macCombo).join(' / ') : s;
+}
+/** Shortcuts written inside a text (tooltips: 'Commit (Ctrl+Enter)'), the Mac way on a Mac. */
+export function displayShortcutsIn(text: string) {
+  return isMac ? text.replace(/\b(?:(?:Ctrl|Alt|Shift)\+)+(?:[A-Za-z0-9]+|[^\s)])/g, (m) => macCombo(m)) : text;
 }
 
 export function buildMenubar(menus: TopMenu[], left: HTMLElement[], right: HTMLElement[]): HTMLElement {

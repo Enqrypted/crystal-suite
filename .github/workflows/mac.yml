@@ -1,0 +1,49 @@
+# Builds and tests Crystal Suite for macOS on GitHub's Mac runners (Apple silicon):
+# Photon from source, an end-to-end check of the launcher installing and opening Photon, the two .dmg files
+# (Apple silicon and Intel), and a start of the packaged app. Results, screenshots and .dmg files are artifacts.
+name: macOS
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['electron/**', 'scripts/dist-mac.cjs', 'scripts/mac-smoke.cjs', 'build/suite-mac.png', '.github/workflows/mac.yml']
+jobs:
+  mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build Photon
+        run: npx vite build
+      - name: Launcher + Photon end-to-end
+        run: npx electron scripts/mac-smoke.cjs smoke-out
+      - name: Build the .dmg files
+        run: node scripts/dist-mac.cjs
+      - name: Start the packaged app
+        run: |
+          set -e
+          hdiutil attach release/CrystalSuite-*-arm64.dmg -mountpoint /tmp/cs -nobrowse
+          export CRYSTAL_HOME="$RUNNER_TEMP/cs-home" CRYSTAL_USER_DATA="$RUNNER_TEMP/cs-data"
+          "/tmp/cs/Crystal Suite.app/Contents/MacOS/Crystal Suite" > smoke-out/packaged.log 2>&1 &
+          PID=$!
+          for i in $(seq 1 30); do [ -f "$CRYSTAL_HOME/catalog-cache.json" ] && break; sleep 1; done
+          kill -0 $PID   # still running
+          test -f "$CRYSTAL_HOME/catalog-cache.json"   # it reached the catalog
+          screencapture -x smoke-out/packaged.png || true
+          kill $PID || true
+          codesign --verify --deep --strict "/tmp/cs/Crystal Suite.app"
+          codesign -dv "/tmp/cs/Crystal Suite.app" 2>&1 | tee -a smoke-out/packaged.log
+          hdiutil detach /tmp/cs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke
+          path: smoke-out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dmg
+          path: release/*.dmg

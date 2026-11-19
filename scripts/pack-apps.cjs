@@ -78,6 +78,9 @@ const CONTENTS = {
   },
 };
 
+/** Where each app runs. Page apps (Photon) run wherever the launcher does; module apps use Windows-only parts. */
+const PLATFORMS = { photon: ['win32', 'darwin'] };
+
 function need(file) {
   if (!fs.existsSync(file)) throw new Error(`${file} is missing - run "npm run build" first.`);
   return file;
@@ -123,6 +126,7 @@ for (const id of Object.keys(CONTENTS)) {
     size: zip.length,
     sha256,
     minLauncher: manifest.minLauncher,
+    platforms: PLATFORMS[id] || ['win32'],
     notes: manifest.notes || '',
   });
   console.log(`${file}  ${(zip.length / 1024).toFixed(0)} KB  sha256 ${sha256}`);

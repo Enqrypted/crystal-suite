@@ -6,7 +6,8 @@ import { HISTORY_LIMIT } from './core/document';
 import { h, clear } from './ui/dom';
 import { icon } from './ui/icons';
 import { Viewport } from './ui/viewport';
-import { buildMenubar, collectShortcuts, eventCombo, displayShortcut } from './ui/menubar';
+import { buildMenubar, collectShortcuts, eventCombo, displayShortcut, displayShortcutsIn } from './ui/menubar';
+import { isMac } from './core/util';
 import { buildToolbar, buildOptionsBar } from './ui/toolbar';
 import { panelGroup, iconStrip, showPanel } from './ui/dock';
 import { contextMenu, toast, numberInput, CtxItem } from './ui/widgets';
@@ -395,6 +396,17 @@ function runMenu(...labels: string[]): boolean {
     items = typeof it.submenu === 'function' ? it.submenu() : it.submenu ?? [];
   }
   return false;
+}
+// tooltips name their shortcuts Windows-style ("Commit (Ctrl+Enter)"); on a Mac they read ⌘↩-style instead
+if (isMac) {
+  const fix = (el: Element) => { const t = el.getAttribute('title'); if (t && /(Ctrl|Alt|Shift)\+/.test(t)) { const n = displayShortcutsIn(t); if (n !== t) el.setAttribute('title', n); } };
+  document.querySelectorAll('[title]').forEach(fix);
+  new MutationObserver((list) => {
+    for (const m of list) {
+      if (m.type === 'attributes') fix(m.target as Element);
+      else m.addedNodes.forEach((n) => { if (n instanceof Element) { fix(n); n.querySelectorAll('[title]').forEach(fix); } });
+    }
+  }).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['title'] });
 }
 (window as any).photon = { app, setTool, io, runMenu };
 console.log(`${APP_NAME} ready`);

@@ -188,11 +188,12 @@
     if (!installed.length && !available.length && state.catalog.status !== 'loading') {
       h += `<div class="empty"><b>No apps to show yet</b>Crystal Suite needs an internet connection once to download its apps.<br /><button data-act="refresh">Try again</button></div>`;
     }
-    if (soon.length) h += `<div class="section">Coming soon</div><div class="soon">${soon.map((a) => `<div class="row">${badge(a)}<div class="info"><div class="name">${esc(a.name)}</div><div class="desc">${esc(a.description)}</div></div></div>`).join('')}</div>`;
+    if (soon.length) h += `<div class="section">Coming soon</div><div class="soon">${soon.map((a) => `<div class="row">${badge(a)}<div class="info"><div class="name">${esc(a.name)}</div><div class="desc">${esc(a.description)}${a.platformNote ? ` · ${esc(a.platformNote)}` : ''}</div></div></div>`).join('')}</div>`;
+    const mod = state.platform === 'darwin' ? '⌘' : 'Ctrl';
     if (installed.some((a) => a.id === 'photon')) {
       h += `<div class="section">Getting started with Photon</div><div class="tips">
-        <div class="tip"><b>Open anything</b>Drag PNG, JPEG, WebP, GIF, SVG or PSD files onto the window, or paste with Ctrl+V.</div>
-        <div class="tip"><b>Photoshop shortcuts</b>Same keys you know: B brush, V move, M marquee, Ctrl+T transform, Ctrl+J layer via copy.</div>
+        <div class="tip"><b>Open anything</b>Drag PNG, JPEG, WebP, GIF, SVG or PSD files onto the window, or paste with ${mod}+V.</div>
+        <div class="tip"><b>Photoshop shortcuts</b>Same keys you know: B brush, V move, M marquee, ${mod}+T transform, ${mod}+J layer via copy.</div>
         <div class="tip"><b>Save as PSD</b>Layers, masks and blend modes round-trip with Photoshop, GIMP and Photopea.</div></div>`;
     }
     return h;
@@ -219,7 +220,7 @@
       <div class="section">Apps</div>
       <div class="card">
         <div class="set"><div class="info"><b>Update apps automatically</b><span class="desc">Download and install new versions in the background.</span></div>${sw('autoUpdate')}</div>
-        <div class="set"><div class="info"><b>Add a desktop shortcut when installing an app</b><span class="desc">A Start menu shortcut is always added.</span></div>${sw('desktopShortcut')}</div>
+        ${state.platform === 'win32' ? `<div class="set"><div class="info"><b>Add a desktop shortcut when installing an app</b><span class="desc">A Start menu shortcut is always added.</span></div>${sw('desktopShortcut')}</div>` : ''}
       </div>
       <div class="section">Storage</div>
       <div class="card"><div class="set"><div class="info"><b>Install location</b><div class="path">${esc(state.appsDir)}</div></div><button class="ghost" data-act="open-apps-folder">Open folder</button></div></div>

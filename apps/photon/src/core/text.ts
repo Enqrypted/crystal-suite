@@ -1,7 +1,13 @@
 import { Layer, TextData } from './layer';
-import { createCanvas, ctx2d, cssColor } from './util';
+import { createCanvas, ctx2d, cssColor, isMac } from './util';
 
-export const FONT_FAMILIES = [
+/** The fonts every PC of the platform has (a document using another font still shows it if it's installed). */
+export const FONT_FAMILIES = isMac ? [
+  'American Typewriter', 'Arial', 'Arial Black', 'Avenir', 'Avenir Next', 'Baskerville', 'Chalkboard SE', 'Comic Sans MS',
+  'Copperplate', 'Courier New', 'Didot', 'Futura', 'Georgia', 'Gill Sans', 'Helvetica', 'Helvetica Neue', 'Hoefler Text',
+  'Impact', 'Marker Felt', 'Menlo', 'Monaco', 'Optima', 'Palatino', 'Rockwell', 'Tahoma', 'Times New Roman', 'Trebuchet MS',
+  'Verdana', 'serif', 'sans-serif', 'monospace', 'cursive', 'fantasy',
+] : [
   'Arial', 'Arial Black', 'Bahnschrift', 'Calibri', 'Cambria', 'Candara', 'Comic Sans MS', 'Consolas', 'Constantia',
   'Corbel', 'Courier New', 'Franklin Gothic Medium', 'Gabriola', 'Georgia', 'Impact', 'Ink Free', 'Lucida Console',
   'Palatino Linotype', 'Segoe Print', 'Segoe Script', 'Segoe UI', 'Sitka Text', 'Tahoma', 'Times New Roman',

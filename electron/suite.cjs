@@ -1,5 +1,6 @@
 // Crystal Suite app manager: reads the app catalog, downloads, verifies, installs, updates and
-// uninstalls apps, and keeps their shortcuts. Apps live in %LOCALAPPDATA%\Crystal Suite\Apps\<id>\<version>.
+// uninstalls apps, and keeps their shortcuts. Apps live in %LOCALAPPDATA%\Crystal Suite\Apps\<id>\<version>
+// (on macOS: ~/Library/Application Support/Crystal Suite/Apps). Each catalog entry lists the platforms it runs on.
 const { app, net, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
@@ -10,7 +11,8 @@ const { extractZip } = require('./zip.cjs');
 const REPO = 'Enqrypted/crystal-suite';
 const REPO_URL = `https://github.com/${REPO}`;
 const CATALOG_URL = process.env.CRYSTAL_CATALOG || `https://raw.githubusercontent.com/${REPO}/main/catalog.json`;
-const HOME = path.resolve(process.env.CRYSTAL_HOME || path.join(process.env.LOCALAPPDATA || app.getPath('userData'), 'Crystal Suite'));
+const HOME = path.resolve(process.env.CRYSTAL_HOME || (process.env.LOCALAPPDATA ? path.join(process.env.LOCALAPPDATA, 'Crystal Suite') : app.getPath('userData')));
+const PLATFORM_NAMES = { win32: 'Windows', darwin: 'Mac', linux: 'Linux' };
 const APPS_DIR = path.join(HOME, 'Apps');
 const INSTALLED_FILE = path.join(HOME, 'installed.json');
 const SETTINGS_FILE = path.join(HOME, 'settings.json');
@@ -66,6 +68,8 @@ function sanitizeCatalog(raw, baseUrl) {
       name: str(a.name, 40), badge: str(a.badge, 3), description: str(a.description),
       color: COLOR_RE.test(a.color) ? a.color : '', bg: COLOR_RE.test(a.bg) ? a.bg : '',
       notes: str(a.notes, 600), minLauncher: VERSION_RE.test(a.minLauncher) ? a.minLauncher : '',
+      // catalogs from before macOS support only had Windows apps
+      platforms: Array.isArray(a.platforms) ? a.platforms.filter((p) => typeof p === 'string') : ['win32'],
     });
   }
   let launcher = null;
@@ -151,7 +155,9 @@ class Suite extends EventEmitter {
   state() {
     const ids = [...new Set([...KNOWN.map((k) => k.id), ...this.catalog.apps.keys(), ...Object.keys(this.installed)])];
     const apps = ids.map((id) => {
-      const c = this.catalog.apps.get(id);
+      const listed = this.catalog.apps.get(id);
+      // an app that doesn't run on this platform shows as coming soon
+      const c = listed && listed.platforms.includes(process.platform) ? listed : null;
       const inst = this.installed[id];
       const t = this.tasks.get(id);
       return {
@@ -163,11 +169,13 @@ class Suite extends EventEmitter {
         task: t ? { kind: t.kind, phase: t.phase, received: t.received, total: t.total } : null,
         running: this.running(id),
         error: this.errors.get(id) || '',
+        platformNote: listed && !c ? `Coming to ${PLATFORM_NAMES[process.platform] || 'this computer'}` : '',
       };
     });
     const l = this.catalog.launcher;
     return {
       version: app.getVersion(),
+      platform: process.platform,
       appsDir: APPS_DIR,
       packaged: app.isPackaged,
       settings: { ...this.settings },
@@ -210,7 +218,7 @@ class Suite extends EventEmitter {
         this.changed();
       }
       if (this.settings.autoUpdate) {
-        for (const a of this.state().apps) if (a.update && !a.task && !a.needsLauncher) this.install(a.id).catch(() => {});
+        for (const a of this.state().apps) if (a.update && !a.task && !a.needsLauncher && !a.platformNote) this.install(a.id).catch(() => {});
       }
     })();
     return this._refreshing;
@@ -222,6 +230,7 @@ class Suite extends EventEmitter {
     const entry = this.catalog.apps.get(id);
     this.errors.delete(id);
     if (!entry) { this.fail(id, 'This app is not available to download yet.'); return; }
+    if (!entry.platforms.includes(process.platform)) { this.fail(id, `${this.info(id).name} isn't available for ${PLATFORM_NAMES[process.platform] || 'this computer'} yet.`); return; }
     if (entry.minLauncher && compareVersions(entry.minLauncher, app.getVersion()) > 0) {
       this.fail(id, `This version needs Crystal Suite ${entry.minLauncher} or newer. Update Crystal Suite first.`);
       return;
