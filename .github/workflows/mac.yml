@@ -22,7 +22,10 @@ jobs:
       - name: Launcher + Photon end-to-end
         run: npx electron scripts/mac-smoke.cjs smoke-out
       - name: Build the .dmg files
-        run: node scripts/dist-mac.cjs
+        # one at a time: both images mount under the same volume name while they are made
+        run: |
+          MAC_ARCHS=arm64 node scripts/dist-mac.cjs
+          MAC_ARCHS=x64 node scripts/dist-mac.cjs
       - name: Start the packaged app
         run: |
           set -e
