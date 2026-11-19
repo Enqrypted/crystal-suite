@@ -86,6 +86,8 @@ app.whenReady().then(async () => {
     await sleep(400);
     const keys = await pw.webContents.executeJavaScript(`[...document.querySelectorAll('.menu-shortcut')].map((e) => e.textContent).filter(Boolean).slice(0, 8)`);
     if (process.platform === 'darwin') check('menus show ⌘ shortcuts', keys.some((k) => k.includes('⌘')) && !keys.some((k) => /Ctrl/.test(k)), JSON.stringify(keys));
+    await pw.webContents.executeJavaScript("document.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); photon.setTool('type'); true");
+    await sleep(300);
     const fonts = await pw.webContents.executeJavaScript(`[...document.querySelectorAll('select option')].map((o) => o.value).filter((v) => /Helvetica|Segoe UI/.test(v)).slice(0, 4)`);
     if (process.platform === 'darwin') check('Mac font list', fonts.includes('Helvetica') && !fonts.includes('Segoe UI'), JSON.stringify(fonts));
     await shot(pw, 'photon');
