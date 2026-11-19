@@ -1,20 +1,24 @@
 {
   "schema": 1,
   "launcher": {
-    "version": "0.2.1",
+    "version": "0.3.0",
     "url": "https://github.com/Enqrypted/crystal-suite/releases/latest"
   },
   "apps": [
     {
       "id": "photon",
       "name": "Photon",
-      "version": "0.2.1",
+      "version": "0.3.0",
       "description": "Photo editing, retouching & compositing",
-      "url": "https://github.com/Enqrypted/crystal-suite/releases/download/photon-v0.2.1/photon-0.2.1.zip",
-      "size": 291271,
-      "sha256": "d3a8d816a96f6e7be1c1478701b09f35a6517c619a509af667d69aedf2cac2cf",
+      "url": "https://github.com/Enqrypted/crystal-suite/releases/download/photon-v0.3.0/photon-0.3.0.zip",
+      "size": 291642,
+      "sha256": "0b5c43eebd17132c9116a864755685e81f526290090e11cf345942d101b16722",
       "minLauncher": "0.1.0",
-      "notes": "Text in edit mode has a bounding box: drag its handles to scale point text or resize a paragraph box (the text rewraps; Ctrl+drag scales it), or drag just outside the box to move the text. 0.2.0 added Bevel & Emboss, Satin, patterns, Warp, Fade, Paste Into, Replace Color and the Patch, Background Eraser, Pattern Stamp and Color Sampler tools."
+      "platforms": [
+        "win32",
+        "darwin"
+      ],
+      "notes": "Photon now runs on macOS too (in Crystal Suite 0.3.0 for Mac): menus and tooltips show Mac shortcuts like ⇧⌘S, ⌘ works wherever Ctrl does, and the font list has the Mac fonts. On Windows nothing changes."
     },
     {
       "id": "prism",
@@ -25,6 +29,9 @@
       "size": 3360833,
       "sha256": "13020535f410836b53bc7c2d6a9e9dd5b8e9db3245bc5a9cea24213eed80d101",
       "minLauncher": "0.2.0",
+      "platforms": [
+        "win32"
+      ],
       "notes": "First release: a clean Chromium browser with built-in ad & tracker blocking (EasyList, EasyPrivacy, uBlock Origin lists), HTTPS upgrades, third-party cookie blocking, private windows, tabs, bookmarks, history, downloads and no telemetry."
     },
     {
@@ -36,6 +43,9 @@
       "size": 219765,
       "sha256": "3132c1c219e9d8177b15a5310d1e9471a420d5334f1f35d29c11fe990cdf3671",
       "minLauncher": "0.2.0",
+      "platforms": [
+        "win32"
+      ],
       "notes": "Fixes the video preview freezing during playback while the audio kept going, especially with screen recordings (OBS and similar), and keeps playback moving on a busy PC. The preview now sits on top with the timeline below, the project frame is outlined so its aspect ratio is easy to see, and the preview footer shows the project format (click it to change). New: Match media in Project Properties and Match Project Video Settings in the media bin."
     },
     {
@@ -50,6 +60,9 @@
       "size": 103654,
       "sha256": "16d697ec42783d198bff58293dde5f44558796858802519a85307fb7adfb3ee3",
       "minLauncher": "0.2.0",
+      "platforms": [
+        "win32"
+      ],
       "notes": "New widgets: Spotify (album art, progress, play/pause, skip, shuffle and repeat; works with the Spotify app, no sign-in), a Control Center (Wi-Fi, Bluetooth, night light and dark mode toggles, now playing, time, CPU and memory, brightness and volume sliders, and quick buttons), and Recent folders. Add them with the Widget button in Facet or from the tray."
     },
     {
@@ -64,6 +77,9 @@
       "size": 2865661,
       "sha256": "745b7eced6e14f7cfd3754231510cc9b7b47020ef7a8d5a032f339e35000ed19",
       "minLauncher": "0.2.0",
+      "platforms": [
+        "win32"
+      ],
       "notes": "Text boxes can be resized: pick a size in the Size list, or select a text box and drag its corner handle. The colour and size controls for text, drawing and highlights now work (they were being ignored), and change the selected annotation when one is selected. A drawing made just before saving is no longer left out."
     },
     {
@@ -78,6 +94,9 @@
       "size": 261242,
       "sha256": "ab6c41a73b264e3b63025bb21bdeea9d19e8fe598e50a00340f776d914e1c8c3",
       "minLauncher": "0.2.0",
+      "platforms": [
+        "win32"
+      ],
       "notes": "Click the Saved notice to see your clip: it has a Show in folder button that opens File Explorer with the clip selected. The notice stays up a little longer, and for as long as the pointer is on it; clicking it doesn't take the focus away from your game."
     },
     {
@@ -92,6 +111,9 @@
       "size": 616735,
       "sha256": "9d78ef7c81fee8708c1d5127befbc6b258ae18a299bcb39192264df065786dbc",
       "minLauncher": "0.2.0",
+      "platforms": [
+        "win32"
+      ],
       "notes": "First release: a fast photo viewer that opens iPhone HEIC photos (and AVIF, JPEG, PNG, GIF, WebP, BMP), with folder browsing, filmstrip and grid, zoom, rotate, slideshow, photo details, and HEIC to JPEG conversion that keeps the date taken."
     }
   ]
