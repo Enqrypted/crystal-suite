@@ -6,7 +6,7 @@ The **Crystal Suite** app is a launcher (like Creative Cloud) that installs, upd
 
 | App | Status | Like |
 | --- | --- | --- |
-| **Photon** | ✅ Available (install it from the launcher) | Photoshop |
+| **Photon** | ✅ Available on Windows and Mac (install it from the launcher) | Photoshop |
 | **Prism** | ✅ Available (from the launcher, or as its own Prism.exe) | Chrome, minus the tracking |
 | **Cut** | ✅ Available (install it from the launcher) | Sony Vegas Pro |
 | **Facet** | ✅ Available (install it from the launcher) | iPhone-style folders and widgets for the Windows desktop |
@@ -21,6 +21,8 @@ The **Crystal Suite** app is a launcher (like Creative Cloud) that installs, upd
 ## Download
 
 Get **`CrystalSuite-Setup-x.y.z.exe`** from the [latest release](https://github.com/Enqrypted/crystal-suite/releases/latest) (or the portable **`CrystalSuite-Portable-x.y.z.exe`**, no installation needed).
+
+**On a Mac** (macOS 11 or newer): get **`CrystalSuite-x.y.z-arm64.dmg`** for Apple silicon (M1 and newer) or **`CrystalSuite-x.y.z-x64.dmg`** for Intel, and drag Crystal Suite to Applications. Photon is the first app on Mac; the others show as "Coming to Mac". Crystal Suite isn't notarized by Apple yet, so the first time macOS asks: open it, then **System Settings › Privacy & Security › Open Anyway**. On a Mac, apps live in `~/Library/Application Support/Crystal Suite/Apps`.
 
 Crystal Suite is a launcher, like Creative Cloud: open it, click **Install** next to an app and it downloads (Photon, Cut, Facet and Onyx are under 300 KB, Opal under 1 MB, Prism and Quartz about 3 MB, because the apps share the launcher's runtime), verifies and installs it. From then on:
 
@@ -102,7 +104,8 @@ git commit -am "Prism <v>" && git push
 
 # A new launcher version: bump "version" in package.json, then
 npm run pack:apps && npm run dist     # catalog.json now advertises the new launcher too
-gh release create v<v> release/CrystalSuite-Setup-<v>.exe release/CrystalSuite-Portable-<v>.exe
+# the Mac .dmg files come from GitHub Actions (.github/workflows/mac.yml, which also tests them): download the "dmg" artifact
+gh release create v<v> release/CrystalSuite-Setup-<v>.exe release/CrystalSuite-Portable-<v>.exe CrystalSuite-<v>-arm64.dmg CrystalSuite-<v>-x64.dmg
 git commit -am "Crystal Suite <v>" && git push
 ```
 
@@ -279,7 +282,8 @@ scripts/build-facet.cjs bundles Facet (esbuild + vite) and compiles FacetHelper.
 scripts/build-quartz.cjs bundles Quartz (esbuild + vite) with PDF.js's data files
 scripts/build-onyx.cjs  bundles Onyx (esbuild + vite) and compiles OnyxHelper.exe
 scripts/build-opal.cjs  bundles Opal (esbuild + vite) with libheif's decoder files
-scripts/pack-apps.cjs   packages apps into release zips and writes catalog.json
+scripts/pack-apps.cjs   packages apps into release zips and writes catalog.json (with the platforms each app runs on)
+scripts/dist-mac.cjs    builds the macOS .dmg files on a Mac (ad-hoc signed); scripts/mac-smoke.cjs tests launcher + Photon
 scripts/build-site.cjs  builds the website in site/: home, landing pages (free Photoshop / Creative Cloud alternative),
                         download and app pages, 404, sitemap.xml and robots.txt (npm run site)
 scripts/build-site-images.cjs  makes the social cards in site/img/og and the favicons (run with electron)

@@ -18,6 +18,9 @@ const LAUNCHER = catalog.launcher.version;
 const LAUNCHER_SIZE = '71 MB'; // CrystalSuite-Setup-<v>.exe on the release
 const SETUP = `${REPO}/releases/download/v${LAUNCHER}/CrystalSuite-Setup-${LAUNCHER}.exe`;
 const PORTABLE = `${REPO}/releases/download/v${LAUNCHER}/CrystalSuite-Portable-${LAUNCHER}.exe`;
+const MAC_ARM = `${REPO}/releases/download/v${LAUNCHER}/CrystalSuite-${LAUNCHER}-arm64.dmg`;
+const MAC_INTEL = `${REPO}/releases/download/v${LAUNCHER}/CrystalSuite-${LAUNCHER}-x64.dmg`;
+const MAC_SIZE = '94 MB'; // CrystalSuite-<v>-arm64.dmg on the release
 const TODAY = new Date().toISOString().slice(0, 10);
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -155,14 +158,14 @@ const APPS = [
 const SEO = {
   photon: {
     replaces: 'Photoshop', color: '#31a8ff', category: 'MultimediaApplication', sub: 'Photo editor',
-    title: 'Photon – Free Photoshop-Style Photo Editor for Windows',
-    description: 'Photon is a free photo editor for Windows laid out like Photoshop: layers, masks, blend modes, filters, layer styles and PSD files. No subscription.',
+    title: 'Photon – Free Photoshop-Style Photo Editor for Windows & Mac',
+    description: 'Photon is a free photo editor for Windows and Mac laid out like Photoshop: layers, masks, blend modes, filters, layer styles and PSD files. No subscription.',
     h1: 'A free photo editor that works like Photoshop',
     faq: [
       ['Is Photon a free Photoshop alternative?', 'Yes. Photon is free and open source, and it is laid out like Photoshop: the same kind of tools, panels, menus and keyboard shortcuts, with layers, masks, adjustment layers, blend modes, filters and layer styles. There is no subscription and no account.'],
       ['Can Photon open and save PSD files?', 'Yes. Photon opens PSD files with their layers, groups, masks, blend modes, opacity and clipping masks, and saves layered PSD files that open in Photoshop, GIMP and Photopea. Its own .phtn project format keeps type, shape, fill and adjustment layers editable.'],
       ['Does Photon work offline?', 'Yes. Photon runs entirely on your PC. The internet is only used by the Crystal Suite launcher to check for updates.'],
-      ['Does Photon run on Mac or Linux?', 'Not yet. Crystal Suite is made for Windows 10 and Windows 11 (64-bit).'],
+      ['Does Photon run on Mac?', 'Yes. Photon runs on macOS 11 or newer, on Apple silicon and Intel Macs, with Mac shortcuts (⌘) and the Mac fonts. Get Crystal Suite for Mac, then install Photon from it. Linux isn’t supported yet.'],
     ],
   },
   prism: {
@@ -258,6 +261,7 @@ const ICON = {
   check: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>',
   cross: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>',
   windows: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.5l7.5-1v7H3zm8.5-1.2L21 3v8.5h-9.5zM3 12.5h7.5v7L3 18.5zm8.5 0H21V21l-9.5-1.3z"/></svg>',
+  apple: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.4 12.6c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.1 1-4 2.4-1.7 3-.4 7.4 1.2 9.8.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8 1.5 0 1.9.8 3.2.8 1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8 0 0-2.5-1-2.5-3.9zM14 5.5c.7-.8 1.1-1.9 1-3-1 0-2.1.7-2.8 1.5-.6.7-1.2 1.8-1 2.9 1.1.1 2.1-.6 2.8-1.4z"/></svg>',
 };
 
 const FONTS = 'https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400..800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap';
@@ -372,7 +376,7 @@ ${footer()}
 
 // ---------- shared blocks ----------
 const trust = `<ul class="trust">
-  <li>${ICON.check}Free forever</li><li>${ICON.check}No account</li><li>${ICON.check}Open source (MIT)</li><li>${ICON.windows}Windows 10 &amp; 11</li>
+  <li>${ICON.check}Free forever</li><li>${ICON.check}No account</li><li>${ICON.check}Open source (MIT)</li><li>${ICON.windows}Windows</li><li>${ICON.apple}Mac (Photon)</li>
 </ul>`;
 
 const cta = (title = 'Get Crystal Suite free', text = 'One small launcher for Windows 10 and 11. Install the apps you want with one click; they keep themselves up to date.') => `<section class="cta reveal"><div class="wrap">
@@ -416,7 +420,7 @@ const HOME_FAQ = [
   ['Do I need an account?', 'No. There is nothing to sign up for. Your files stay on your PC, and the apps work offline.'],
   ['Can it open Photoshop (PSD) files?', 'Yes. Photon opens PSD files with their layers, masks, blend modes and opacity, and saves layered PSD files that Photoshop opens.'],
   ['Is it safe to install?', 'The source code is public on GitHub. The installer isn’t code-signed yet, so Windows SmartScreen may warn the first time: click More info, then Run anyway. Every app download is checked against its published SHA-256 checksum.'],
-  ['Does it work on Mac or Linux?', 'Not yet. Crystal Suite is made for Windows 10 and Windows 11 (64-bit).'],
+  ['Does it work on Mac?', 'Yes, partly: the Crystal Suite launcher and Photon run on macOS 11 or newer (Apple silicon and Intel). The other apps are Windows-only for now and show as “Coming to Mac”. Linux isn’t supported yet.'],
 ];
 
 // ---------- pages ----------
@@ -488,7 +492,7 @@ ${marquee()}
     ['PDF editing &amp; signing', true, true],
     ['Video editing', true, true],
     ['Windows 10 &amp; 11', true, true],
-    ['macOS', false, true],
+    ['macOS', 'Launcher &amp; Photon', true],
   ], ['Crystal Suite', 'Adobe Creative Cloud'])}
   <p class="center more-link reveal"><a href="adobe-alternative.html">Every Adobe app and its free replacement ${ICON.arrow}</a></p>
 </div></section>
@@ -503,12 +507,13 @@ const PS_FAQ = [
   ['Can Photon open my PSD files?', 'Yes, with their layers, groups, masks, blend modes, opacity and clipping masks. Photon also saves layered PSD files that open in Photoshop.'],
   ['Does Photon have Photoshop’s keyboard shortcuts?', 'Yes. V for Move, B for Brush, Ctrl+T for Free Transform, Ctrl+J for Layer via Copy and the rest of the usual shortcuts work as you expect.'],
   ['What can Photoshop do that Photon can’t?', 'Photoshop has generative AI features, 3D, CMYK printing workflows, smart objects, actions and plug-ins, and runs on macOS. Photon focuses on the everyday photo editing, retouching and compositing most people use Photoshop for.'],
-  ['Does Photon work without the internet?', 'Yes. Everything runs on your PC; nothing is uploaded.'],
+  ['Does Photon work without the internet?', 'Yes. Everything runs on your computer; nothing is uploaded.'],
+  ['Is there a Photoshop alternative for Mac?', 'Yes: Photon runs on macOS too, on Apple silicon and Intel Macs. It’s free, with Photoshop’s layout and ⌘ shortcuts.'],
 ];
 const photoshopPage = {
   file: 'free-photoshop-alternative.html', current: 'photoshop', bodyClass: 'app-photon', preload: 'photon-layers.webp', image: 'img/og/photon.jpg',
-  title: 'Free Photoshop Alternative for Windows – No Subscription | Photon',
-  description: 'Looking for a free Photoshop alternative? Photon has Photoshop’s layout, tools and shortcuts, opens PSD files and runs offline on Windows. Free.',
+  title: 'Free Photoshop Alternative for Windows & Mac | Photon',
+  description: 'Looking for a free Photoshop alternative? Photon has Photoshop’s layout, tools and shortcuts, opens PSD files and runs offline on Windows and Mac. Free.',
   ldItems: [
     softwareLd('Photon', SEO.photon.description, `${SITE_URL}photon.html`, `${SITE_URL}img/og/photon.jpg`, { softwareVersion: APPS[0].version, applicationSubCategory: 'Photo editor', screenshot: `${SITE_URL}img/photon-layers.webp` }),
     crumbsLd([['Crystal Suite', 'index.html'], ['Free Photoshop alternative', 'free-photoshop-alternative.html']]),
@@ -516,9 +521,9 @@ const photoshopPage = {
   ],
   body: `<section class="hero app-hero"><div class="wrap center-col">
   <img class="icon" src="img/icons/photon.png" alt="" width="88" height="88">
-  <span class="eyebrow">Free Photoshop alternative &middot; Windows</span>
+  <span class="eyebrow">Free Photoshop alternative &middot; Windows &amp; Mac</span>
   <h1>The free <span class="grad">Photoshop alternative</span> that feels like Photoshop.</h1>
-  <p class="lede">Photon gives you Photoshop’s layout, tools and shortcuts, opens and saves PSD files, and runs offline on your PC. No subscription. No account. No watermark.</p>
+  <p class="lede">Photon gives you Photoshop’s layout, tools and shortcuts, opens and saves PSD files, and runs offline on Windows and Mac. No subscription. No account. No watermark.</p>
   <div class="cta-row center"><a class="btn big" href="download.html">${ICON.download}Download Photon free</a><a class="btn big ghost" href="photon.html">All of Photon’s features ${ICON.arrow}</a></div>
   ${trust}
 </div>
@@ -563,7 +568,7 @@ const photoshopPage = {
     ['Healing, Patch, Content-Aware Fill', true, true],
     ['Camera Raw, Liquify, Warp', true, true],
     ['Generative AI, 3D, actions, plug-ins', false, true],
-    ['macOS', false, true],
+    ['Windows &amp; macOS', true, true],
   ], ['Photon', 'Adobe Photoshop'])}
 </div></section>
 
@@ -641,8 +646,8 @@ ${cta()}`,
 
 const download = {
   file: 'download.html', current: 'download', preload: 'launcher.webp',
-  title: 'Download Crystal Suite – Free for Windows 10 & 11',
-  description: `Download Crystal Suite ${LAUNCHER} free for Windows 10 and 11: Photon (Photoshop alternative), Quartz (PDF editor), Cut (video editor), Opal and more.`,
+  title: 'Download Crystal Suite – Free for Windows and Mac',
+  description: `Download Crystal Suite ${LAUNCHER} free for Windows and Mac: Photon (Photoshop alternative), Quartz (PDF editor), Cut (video editor), Opal and more.`,
   ldItems: [
     softwareLd('Crystal Suite', 'Free launcher for the Crystal Suite apps on Windows.', `${SITE_URL}download.html`, `${SITE_URL}img/og/home.jpg`, { softwareVersion: LAUNCHER, fileSize: LAUNCHER_SIZE }),
     crumbsLd([['Crystal Suite', 'index.html'], ['Download', 'download.html']]),
@@ -650,14 +655,15 @@ const download = {
   body: `<section class="hero app-hero"><div class="wrap center-col">
   <span class="pill"><i></i>Version ${LAUNCHER} &middot; free</span>
   <h1>Download <span class="grad">Crystal Suite</span></h1>
-  <p class="lede">For Windows 10 and 11 (64-bit). Install the launcher, then pick the apps you want. Each is a small download.</p>
+  <p class="lede">For Windows 10 and 11, and for Mac. Install the launcher, then pick the apps you want. Each is a small download.</p>
 </div></section>
 
 <section style="padding-top:0"><div class="wrap">
   <div class="dl-grid">
-    <div class="dl reveal"><span class="tag">Recommended</span><h2>Installer</h2><p>Installs Crystal Suite for your account, with Start menu and desktop shortcuts. No admin rights needed.</p><a class="btn big" href="${SETUP}">${ICON.download}Download installer</a><span class="file">CrystalSuite-Setup-${LAUNCHER}.exe &middot; ${LAUNCHER_SIZE}</span></div>
-    <div class="dl reveal"><span class="tag">No install</span><h2>Portable</h2><p>One file you can run from anywhere, such as a USB stick. Apps still install to your user folder.</p><a class="btn big ghost" href="${PORTABLE}">${ICON.download}Download portable</a><span class="file">CrystalSuite-Portable-${LAUNCHER}.exe &middot; ${LAUNCHER_SIZE}</span></div>
+    <div class="dl reveal"><span class="tag">Windows 10 &amp; 11 &middot; recommended</span><h2>Windows installer</h2><p>Installs Crystal Suite for your account, with Start menu and desktop shortcuts. No admin rights needed.</p><a class="btn big" href="${SETUP}">${ICON.download}Download installer</a><span class="file">CrystalSuite-Setup-${LAUNCHER}.exe &middot; ${LAUNCHER_SIZE}</span></div>
+    <div class="dl reveal"><span class="tag">Windows &middot; no install</span><h2>Windows portable</h2><p>One file you can run from anywhere, such as a USB stick. Apps still install to your user folder.</p><a class="btn big ghost" href="${PORTABLE}">${ICON.download}Download portable</a><span class="file">CrystalSuite-Portable-${LAUNCHER}.exe &middot; ${LAUNCHER_SIZE}</span></div>
   </div>
+  <div class="dl mac reveal" id="mac"><span class="tag">New &middot; macOS 11 or newer</span><h2>Crystal Suite for Mac</h2><p>The launcher and Photon run on Mac; the other apps are coming. Drag Crystal Suite to Applications. It isn’t notarized by Apple yet, so the first time macOS asks: open it, then go to <b>System Settings › Privacy &amp; Security</b> and click <b>Open Anyway</b>.</p><div class="cta-row"><a class="btn big" href="${MAC_ARM}">${ICON.apple}Apple silicon (M1 and newer)</a><a class="btn big ghost" href="${MAC_INTEL}">${ICON.apple}Intel Mac</a></div><span class="file">CrystalSuite-${LAUNCHER}-arm64.dmg / -x64.dmg &middot; ${MAC_SIZE}</span></div>
 </div></section>
 
 <section><div class="wrap two">
