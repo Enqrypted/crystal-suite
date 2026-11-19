@@ -280,8 +280,11 @@ scripts/build-quartz.cjs bundles Quartz (esbuild + vite) with PDF.js's data file
 scripts/build-onyx.cjs  bundles Onyx (esbuild + vite) and compiles OnyxHelper.exe
 scripts/build-opal.cjs  bundles Opal (esbuild + vite) with libheif's decoder files
 scripts/pack-apps.cjs   packages apps into release zips and writes catalog.json
-scripts/build-site.cjs  builds the website in site/ (home, download and app pages; npm run site)
-site/                   the website: generated pages, style.css, site.js and the app screenshots in img/
+scripts/build-site.cjs  builds the website in site/: home, landing pages (free Photoshop / Creative Cloud alternative),
+                        download and app pages, 404, sitemap.xml and robots.txt (npm run site)
+scripts/build-site-images.cjs  makes the social cards in site/img/og and the favicons (run with electron)
+site/                   the website (https://enqrypted.github.io/crystal-suite/, published by .github/workflows/pages.yml):
+                        generated pages, style.css, site.js and the app screenshots in img/
 catalog.json            the published app catalog the launcher reads
 ```
 

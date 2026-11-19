@@ -3,70 +3,115 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Cut · Crystal Suite</title>
-<meta name="claude:viewport-fit-sides" content="cover">
-<meta name="description" content="Cut: video editing for Windows. A video editor laid out like Sony Vegas Pro: media, preview and properties on top, the timeline below. Cut, layer, mix and render to MP4 or WebM. Free and open source, part of Crystal Suite.">
-<meta property="og:title" content="Cut · Crystal Suite">
-<meta property="og:description" content="Cut: video editing for Windows. A video editor laid out like Sony Vegas Pro: media, preview and properties on top, the timeline below. Cut, layer, mix and render to MP4 or WebM. Free and open source, part of Crystal Suite.">
-<link rel="icon" href="img/icons/suite.png">
+<title>Cut – Free Video Editor for Windows (Vegas Pro Alternative)</title>
+<meta name="description" content="Cut is a free video editor for Windows laid out like Vegas Pro: multitrack timeline, transitions, titles and MP4 export up to 4K. No watermark.">
+<link rel="canonical" href="https://enqrypted.github.io/crystal-suite/cut.html">
+<meta name="theme-color" content="#08080f">
+<meta name="color-scheme" content="dark">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Crystal Suite">
+<meta property="og:title" content="Cut – Free Video Editor for Windows (Vegas Pro Alternative)">
+<meta property="og:description" content="Cut is a free video editor for Windows laid out like Vegas Pro: multitrack timeline, transitions, titles and MP4 export up to 4K. No watermark.">
+<meta property="og:url" content="https://enqrypted.github.io/crystal-suite/cut.html">
+<meta property="og:image" content="https://enqrypted.github.io/crystal-suite/img/og/cut.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Cut – Free Video Editor for Windows (Vegas Pro Alternative)">
+<meta name="twitter:description" content="Cut is a free video editor for Windows laid out like Vegas Pro: multitrack timeline, transitions, titles and MP4 export up to 4K. No watermark.">
+<meta name="twitter:image" content="https://enqrypted.github.io/crystal-suite/img/og/cut.jpg">
+<link rel="icon" type="image/png" sizes="64x64" href="img/icons/favicon-64.png">
+<link rel="icon" type="image/png" sizes="192x192" href="img/icons/suite.png">
+<link rel="apple-touch-icon" href="img/icons/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400..800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="style.css">
+<link rel="preload" as="image" href="img/cut-timeline.webp" fetchpriority="high">
+<script>document.documentElement.classList.add('js')</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Cut","description":"Cut is a free video editor for Windows laid out like Vegas Pro: multitrack timeline, transitions, titles and MP4 export up to 4K. No watermark.","url":"https://enqrypted.github.io/crystal-suite/cut.html","image":"https://enqrypted.github.io/crystal-suite/img/og/cut.jpg","operatingSystem":"Windows 10, Windows 11","applicationCategory":"MultimediaApplication","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"isAccessibleForFree":true,"license":"https://github.com/Enqrypted/crystal-suite/blob/main/LICENSE","downloadUrl":"https://github.com/Enqrypted/crystal-suite/releases/download/v0.2.1/CrystalSuite-Setup-0.2.1.exe","publisher":{"@type":"Organization","name":"Crystal Suite","url":"https://enqrypted.github.io/crystal-suite/"},"softwareVersion":"0.1.2","applicationSubCategory":"Video editor","screenshot":"https://enqrypted.github.io/crystal-suite/img/cut-timeline.webp","fileSize":"215 KB"}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Crystal Suite","item":"https://enqrypted.github.io/crystal-suite/"},{"@type":"ListItem","position":2,"name":"Cut","item":"https://enqrypted.github.io/crystal-suite/cut.html"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Does Cut add a watermark?","acceptedAnswer":{"@type":"Answer","text":"No. Cut is completely free and never adds a watermark to your videos."}},{"@type":"Question","name":"What can Cut export?","acceptedAnswer":{"@type":"Answer","text":"MP4 (H.264 with AAC audio) or WebM (VP9 with Opus), at your project size or a preset up to 4K, using your graphics card’s encoder when your PC has one."}},{"@type":"Question","name":"Is Cut like Vegas Pro?","acceptedAnswer":{"@type":"Answer","text":"Cut follows the Vegas Pro layout: media, preview and properties on top, the timeline below, with Vegas-style fade and volume handles on each event and automatic crossfades."}}]}</script>
 </head>
 <body class="app-cut">
+<div class="aurora" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+<a class="skip" href="#main">Skip to content</a>
 <header class="site-header"><div class="wrap">
-  <a class="brand" href="index.html"><img src="img/icons/suite.png" alt="" width="30" height="30">Crystal Suite</a>
+  <a class="brand" href="index.html"><img src="img/icons/suite.png" alt="" width="30" height="30"><span>Crystal Suite</span></a>
   <nav class="nav" aria-label="Main">
-    <details class="apps-menu"><summary>Apps</summary><div class="menu"><a href="photon.html"><img src="img/icons/photon.png" alt="" width="36" height="36"><b>Photon</b><span>Photo editing, retouching &amp; compositing</span></a><a href="prism.html"><img src="img/icons/prism.png" alt="" width="36" height="36"><b>Prism</b><span>Clean, private web browser</span></a><a href="cut.html" aria-current="page"><img src="img/icons/cut.png" alt="" width="36" height="36"><b>Cut</b><span>Video editing</span></a><a href="facet.html"><img src="img/icons/facet.png" alt="" width="36" height="36"><b>Facet</b><span>Desktop folders &amp; widgets</span></a><a href="quartz.html"><img src="img/icons/quartz.png" alt="" width="36" height="36"><b>Quartz</b><span>PDF reader &amp; editor</span></a><a href="onyx.html"><img src="img/icons/onyx.png" alt="" width="36" height="36"><b>Onyx</b><span>Instant replay for games</span></a><a href="opal.html"><img src="img/icons/opal.png" alt="" width="36" height="36"><b>Opal</b><span>Photo viewer</span></a></div></details>
-    <a class="hide-sm" href="download.html">Download</a>
-    <a class="hide-sm" href="https://github.com/Enqrypted/crystal-suite">GitHub</a>
+    <details class="apps-menu"><summary>Apps</summary><div class="menu"><a href="photon.html"><img src="img/icons/photon.png" alt="" width="36" height="36"><b>Photon</b><span>Photo editor &middot; replaces Photoshop</span></a><a href="prism.html"><img src="img/icons/prism.png" alt="" width="36" height="36"><b>Prism</b><span>Web browser &middot; replaces Chrome</span></a><a href="cut.html" aria-current="page"><img src="img/icons/cut.png" alt="" width="36" height="36"><b>Cut</b><span>Video editor &middot; replaces Premiere Pro &amp; Vegas</span></a><a href="facet.html"><img src="img/icons/facet.png" alt="" width="36" height="36"><b>Facet</b><span>Desktop widgets &middot; replaces Messy desktops</span></a><a href="quartz.html"><img src="img/icons/quartz.png" alt="" width="36" height="36"><b>Quartz</b><span>PDF editor &middot; replaces Acrobat</span></a><a href="onyx.html"><img src="img/icons/onyx.png" alt="" width="36" height="36"><b>Onyx</b><span>Game recorder &middot; replaces ShadowPlay</span></a><a href="opal.html"><img src="img/icons/opal.png" alt="" width="36" height="36"><b>Opal</b><span>Photo viewer &middot; replaces Windows Photos</span></a></div></details>
+    <a class="hide-sm" href="free-photoshop-alternative.html">Photoshop alternative</a>
+    <a class="hide-md" href="adobe-alternative.html">vs Adobe</a>
+    <a class="hide-md" href="https://github.com/Enqrypted/crystal-suite">GitHub</a>
     <a class="btn small header-dl" href="download.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></svg>Download</a>
   </nav>
 </div></header>
-<main>
-<section class="hero waved app-hero"><canvas class="waves" data-shape="low" aria-hidden="true"></canvas><div class="wrap">
-  <img class="icon" src="img/icons/cut.png" alt="" width="84" height="84">
-  <span class="eyebrow">Video editing</span>
-  <h1>Cut</h1>
+<main id="main">
+<section class="hero app-hero"><div class="wrap center-col">
+  <img class="icon" src="img/icons/cut.png" alt="" width="88" height="88">
+  <span class="eyebrow">Cut &middot; free Premiere Pro &amp; Vegas alternative</span>
+  <h1>A free video editor laid out like Vegas Pro</h1>
   <p class="lede">A video editor laid out like Sony Vegas Pro: media, preview and properties on top, the timeline below. Cut, layer, mix and render to MP4 or WebM.</p>
-  <div class="cta-row"><a class="btn" href="download.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></svg>Get Cut free</a><a class="btn ghost" href="https://github.com/Enqrypted/crystal-suite/tree/main/apps/cut"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02a9.5 9.5 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2Z"/></svg>Source code</a></div>
-  <p class="meta">Version 0.1.2 &middot; 215 KB download in Crystal Suite &middot; Alternative to Vegas Pro</p>
-</div></section>
-
-<div class="wrap big-shot"><figure class="shot"><img src="img/cut-timeline.webp" width="2880" height="1800" alt="Cut with three pictures, two titles and a music track on the timeline, and the title showing in the preview" fetchpriority="high" decoding="async"></figure></div>
+  <div class="cta-row center"><a class="btn big" href="download.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></svg>Get Cut free</a><a class="btn big ghost" href="https://github.com/Enqrypted/crystal-suite/tree/main/apps/cut"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02a9.5 9.5 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2Z"/></svg>Source code</a></div>
+  <p class="meta">Version 0.1.2 &middot; 215 KB download in Crystal Suite &middot; Windows 10 &amp; 11</p>
+</div>
+<div class="wrap big-shot"><figure class="shot tilt-up"><img src="img/cut-timeline.webp" width="2880" height="1800" alt="Cut with three pictures, two titles and a music track on the timeline, and the title showing in the preview" fetchpriority="high" decoding="async"></figure></div>
+</section>
 
 <section><div class="wrap">
-  <div class="section-head"><span class="eyebrow">What’s inside</span><h2>Edit like it’s Vegas</h2></div>
-  <div class="features"><div class="feature"><h3>A real timeline</h3><p>Video and audio tracks, split with S, trim, ripple editing, snapping to edges and markers, loop a time selection.</p></div><div class="feature"><h3>Vegas-style handles</h3><p>Drag an event’s top corners for fades and its top edge for volume or opacity. Overlap two events for a crossfade.</p></div><div class="feature"><h3>Mix the audio</h3><p>Event and track volume and pan, mute and solo, normalize, and a master bus with peak meters.</p></div><div class="feature"><h3>Picture tools</h3><p>Transitions, Pan/Crop with Ken Burns moves, brightness, contrast, color, blur and more.</p></div><div class="feature"><h3>Titles and generators</h3><p>Text, titles, lower thirds, solid colors and gradients.</p></div><div class="feature"><h3>Render As</h3><p>MP4 (H.264 + AAC) or WebM (VP9 + Opus), up to 4K, with hardware encoding when your PC has it.</p></div></div>
+  <div class="section-head reveal"><span class="eyebrow">What’s inside</span><h2>Edit like it’s Vegas</h2></div>
+  <div class="features"><div class="feature reveal"><h3>A real timeline</h3><p>Video and audio tracks, split with S, trim, ripple editing, snapping to edges and markers, loop a time selection.</p></div><div class="feature reveal"><h3>Vegas-style handles</h3><p>Drag an event’s top corners for fades and its top edge for volume or opacity. Overlap two events for a crossfade.</p></div><div class="feature reveal"><h3>Mix the audio</h3><p>Event and track volume and pan, mute and solo, normalize, and a master bus with peak meters.</p></div><div class="feature reveal"><h3>Picture tools</h3><p>Transitions, Pan/Crop with Ken Burns moves, brightness, contrast, color, blur and more.</p></div><div class="feature reveal"><h3>Titles and generators</h3><p>Text, titles, lower thirds, solid colors and gradients.</p></div><div class="feature reveal"><h3>Render As</h3><p>MP4 (H.264 + AAC) or WebM (VP9 + Opus), up to 4K, with hardware encoding when your PC has it.</p></div></div>
 </div></section>
 
-<section style="padding-top:0"><div class="wrap pair"><figure class="captioned"><div class="shot"><img src="img/cut-render.webp" width="2880" height="1800" alt="Cut’s Render As dialog with MP4 format, resolution, frame rate and quality options" loading="lazy" decoding="async"></div><figcaption>Render As: MP4 or WebM, up to 4K, with a size estimate.</figcaption></figure></div></section>
+<section style="padding-top:0"><div class="wrap pair"><figure class="captioned reveal"><div class="shot"><img src="img/cut-render.webp" width="2880" height="1800" alt="Cut’s Render As dialog with MP4 format, resolution, frame rate and quality options" loading="lazy" decoding="async"></div><figcaption>Render As: MP4 or WebM, up to 4K, with a size estimate.</figcaption></figure></div></section>
+
+<section class="faq-sec"><div class="wrap narrow">
+  <div class="section-head center reveal"><span class="eyebrow">FAQ</span><h2>Cut: FAQ</h2></div>
+  <div class="faq"><details class="reveal" open><summary><h3>Does Cut add a watermark?</h3></summary><p>No. Cut is completely free and never adds a watermark to your videos.</p></details><details class="reveal"><summary><h3>What can Cut export?</h3></summary><p>MP4 (H.264 with AAC audio) or WebM (VP9 with Opus), at your project size or a preset up to 4K, using your graphics card’s encoder when your PC has one.</p></details><details class="reveal"><summary><h3>Is Cut like Vegas Pro?</h3></summary><p>Cut follows the Vegas Pro layout: media, preview and properties on top, the timeline below, with Vegas-style fade and volume handles on each event and automatic crossfades.</p></details></div>
+</div></section>
 
 <section style="padding-top:0"><div class="wrap">
-  <div class="section-head"><span class="eyebrow">Also in Crystal Suite</span><h2>More free apps</h2></div>
-  <div class="others"><a class="other" href="photon.html"><img src="img/icons/photon.png" alt="" width="48" height="48"><b>Photon</b><span>Photo editing, retouching &amp; compositing</span></a><a class="other" href="prism.html"><img src="img/icons/prism.png" alt="" width="48" height="48"><b>Prism</b><span>Clean, private web browser</span></a><a class="other" href="facet.html"><img src="img/icons/facet.png" alt="" width="48" height="48"><b>Facet</b><span>Desktop folders &amp; widgets</span></a><a class="other" href="quartz.html"><img src="img/icons/quartz.png" alt="" width="48" height="48"><b>Quartz</b><span>PDF reader &amp; editor</span></a><a class="other" href="onyx.html"><img src="img/icons/onyx.png" alt="" width="48" height="48"><b>Onyx</b><span>Instant replay for games</span></a><a class="other" href="opal.html"><img src="img/icons/opal.png" alt="" width="48" height="48"><b>Opal</b><span>Photo viewer</span></a></div>
+  <div class="section-head reveal"><span class="eyebrow">Also in Crystal Suite</span><h2>More free apps</h2></div>
+  <div class="others"><a class="other reveal" href="photon.html"><img src="img/icons/photon.png" alt="" width="48" height="48" loading="lazy"><b>Photon</b><span>Photo editor &middot; replaces Photoshop</span></a><a class="other reveal" href="prism.html"><img src="img/icons/prism.png" alt="" width="48" height="48" loading="lazy"><b>Prism</b><span>Web browser &middot; replaces Chrome</span></a><a class="other reveal" href="facet.html"><img src="img/icons/facet.png" alt="" width="48" height="48" loading="lazy"><b>Facet</b><span>Desktop widgets &middot; replaces Messy desktops</span></a><a class="other reveal" href="quartz.html"><img src="img/icons/quartz.png" alt="" width="48" height="48" loading="lazy"><b>Quartz</b><span>PDF editor &middot; replaces Acrobat</span></a><a class="other reveal" href="onyx.html"><img src="img/icons/onyx.png" alt="" width="48" height="48" loading="lazy"><b>Onyx</b><span>Game recorder &middot; replaces ShadowPlay</span></a><a class="other reveal" href="opal.html"><img src="img/icons/opal.png" alt="" width="48" height="48" loading="lazy"><b>Opal</b><span>Photo viewer &middot; replaces Windows Photos</span></a></div>
 </div></section>
 
-<section class="band waved"><canvas class="waves" data-shape="band" aria-hidden="true"></canvas><div class="wrap">
-  <h2>Get Crystal Suite</h2>
-  <p class="lede">Free for Windows 10 and 11. Install the launcher, then add any app with one click.</p>
-  <div class="cta-row"><a class="btn" href="download.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></svg>Download for Windows</a><a class="btn ghost" href="https://github.com/Enqrypted/crystal-suite"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02a9.5 9.5 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2Z"/></svg>Source on GitHub</a></div>
+<section class="cta reveal"><div class="wrap">
+  <div class="cta-card">
+    <div class="cta-glow" aria-hidden="true"></div>
+    <div class="cta-icons" aria-hidden="true"><img src="img/icons/photon.png" alt="" width="56" height="56" loading="lazy"><img src="img/icons/prism.png" alt="" width="56" height="56" loading="lazy"><img src="img/icons/cut.png" alt="" width="56" height="56" loading="lazy"><img src="img/icons/facet.png" alt="" width="56" height="56" loading="lazy"><img src="img/icons/quartz.png" alt="" width="56" height="56" loading="lazy"><img src="img/icons/onyx.png" alt="" width="56" height="56" loading="lazy"><img src="img/icons/opal.png" alt="" width="56" height="56" loading="lazy"></div>
+    <h2>Get Cut free</h2>
+    <p class="lede">Cut is part of Crystal Suite: install the launcher, then add Cut with one click.</p>
+    <div class="cta-row center"><a class="btn big" href="download.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></svg>Download for Windows</a><a class="btn big ghost" href="https://github.com/Enqrypted/crystal-suite"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02a9.5 9.5 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2Z"/></svg>Source on GitHub</a></div>
+    <p class="meta">Version 0.2.1 &middot; 71 MB &middot; no account needed</p>
+  </div>
 </div></section>
 </main>
 <footer class="site-footer"><div class="wrap">
-  <div class="foot-top">
-    <a class="brand" href="index.html"><img src="img/icons/suite.png" alt="" width="30" height="30">Crystal Suite</a>
-    <div class="foot-links">
-      <a href="photon.html">Photon</a><a href="prism.html">Prism</a><a href="cut.html">Cut</a><a href="facet.html">Facet</a><a href="quartz.html">Quartz</a><a href="onyx.html">Onyx</a><a href="opal.html">Opal</a>
+  <div class="foot-grid">
+    <div class="foot-brand">
+      <a class="brand" href="index.html"><img src="img/icons/suite.png" alt="" width="30" height="30"><span>Crystal Suite</span></a>
+      <p>Free, open-source creative apps for Windows. No account, no subscription, no telemetry.</p>
+      <a class="btn small ghost" href="download.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></svg>Download free</a>
+    </div>
+    <nav aria-label="Apps"><h2>Apps</h2><a href="photon.html">Photon <span>Photo editor</span></a><a href="prism.html">Prism <span>Web browser</span></a><a href="cut.html">Cut <span>Video editor</span></a><a href="facet.html">Facet <span>Desktop widgets</span></a><a href="quartz.html">Quartz <span>PDF editor</span></a><a href="onyx.html">Onyx <span>Game recorder</span></a><a href="opal.html">Opal <span>Photo viewer</span></a></nav>
+    <nav aria-label="Alternatives"><h2>Free alternatives</h2>
+      <a href="free-photoshop-alternative.html">Photoshop alternative</a>
+      <a href="adobe-alternative.html">Creative Cloud alternative</a>
+      <a href="quartz.html">Acrobat alternative</a>
+      <a href="cut.html">Vegas Pro alternative</a>
+      <a href="opal.html">HEIC viewer for Windows</a>
+      <a href="onyx.html">ShadowPlay alternative</a>
+    </nav>
+    <nav aria-label="Project"><h2>Project</h2>
       <a href="download.html">Download</a>
       <a href="https://github.com/Enqrypted/crystal-suite">Source code</a>
       <a href="https://github.com/Enqrypted/crystal-suite/releases">Releases</a>
+      <a href="https://github.com/Enqrypted/crystal-suite/issues">Report a problem</a>
       <a href="https://github.com/Enqrypted/crystal-suite/blob/main/LICENSE">MIT license</a>
-    </div>
+    </nav>
   </div>
-  <p class="fine">Crystal Suite is free and open-source software under the MIT license, made by independent contributors. Photoshop and Acrobat are trademarks of Adobe, Chrome of Google, Vegas Pro of MAGIX, iPhone of Apple and ShadowPlay of NVIDIA; Crystal Suite is not affiliated with any of them.</p>
+  <p class="fine">Crystal Suite is free and open-source software under the MIT license, made by independent contributors. Adobe, Photoshop, Acrobat, Premiere Pro, Lightroom, Illustrator, After Effects, InDesign, Bridge and Creative Cloud are trademarks of Adobe; Chrome of Google; Vegas Pro of MAGIX; iPhone of Apple; ShadowPlay of NVIDIA; Roblox of Roblox Corporation. Crystal Suite is not affiliated with or endorsed by any of them; their names are used only to describe what the apps are alike.</p>
 </div></footer>
-<script src="site.js"></script>
+<script src="site.js" defer></script>
 </body>
 </html>
