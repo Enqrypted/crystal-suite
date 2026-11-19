@@ -36,7 +36,8 @@ builder.build({
     },
     dmg: { artifactName: 'CrystalSuite-${version}-${arch}.${ext}', title: 'Crystal Suite ${version}' },
     // Photon projects open from Finder; other images keep their usual app
-    fileAssociations: [{ ext: 'phtn', name: 'Photon Project', description: 'Photon Project', role: 'Editor' }],
+    fileAssociations: [{ ext: 'phtn', name: 'Photon Project', description: 'Photon Project', role: 'Editor', icon: 'build/photon.icns' }],
+    publish: null, // releases are made by hand (see README)
     afterPack: async (ctx) => {
       const appPath = path.join(ctx.appOutDir, `${ctx.packager.appInfo.productFilename}.app`);
       execFileSync('codesign', ['--force', '--deep', '--sign', '-', appPath], { stdio: 'inherit' });
