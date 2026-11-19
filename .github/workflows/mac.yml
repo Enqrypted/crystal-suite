@@ -31,11 +31,13 @@ jobs:
           set -e
           hdiutil attach release/CrystalSuite-*-arm64.dmg -mountpoint /tmp/cs -nobrowse
           export CRYSTAL_HOME="$RUNNER_TEMP/cs-home" CRYSTAL_USER_DATA="$RUNNER_TEMP/cs-data"
-          "/tmp/cs/Crystal Suite.app/Contents/MacOS/Crystal Suite" > smoke-out/packaged.log 2>&1 &
+          "/tmp/cs/Crystal Suite.app/Contents/MacOS/Crystal Suite" --remote-debugging-port=9333 > smoke-out/packaged.log 2>&1 &
           PID=$!
           for i in $(seq 1 30); do [ -f "$CRYSTAL_HOME/catalog-cache.json" ] && break; sleep 1; done
           kill -0 $PID   # still running
           test -f "$CRYSTAL_HOME/catalog-cache.json"   # it reached the catalog
+          node scripts/ci-launcher-check.cjs 9333   # the app list rendered
+          sleep 2
           screencapture -x smoke-out/packaged.png || true
           kill $PID || true
           codesign --verify --deep --strict "/tmp/cs/Crystal Suite.app"
